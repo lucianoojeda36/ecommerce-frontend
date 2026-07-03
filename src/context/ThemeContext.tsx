@@ -35,7 +35,6 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   const primary = storeSettings?.primary_color || defaults.primary_color
   const secondary = storeSettings?.secondary_color || defaults.secondary_color
-  const font = storeSettings?.font_family || defaults.font_family
 
   useEffect(() => {
     const root = document.documentElement
@@ -63,7 +62,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
     document.body.style.backgroundColor = bg
     document.body.style.color = text
-  }, [theme, primary, secondary, font])
+  }, [theme, primary, secondary])
 
   useEffect(() => {
     if (storeSettings?.theme && !localStorage.getItem('theme')) {
@@ -71,28 +70,12 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     }
   }, [storeSettings])
 
-  useEffect(() => {
-    const link = document.getElementById('google-font') as HTMLLinkElement | null
-    const encoded = font.replace(/ /g, '+')
-    const url = `https://fonts.googleapis.com/css2?family=${encoded}:wght@400;500;600;700&display=swap`
-    if (link) {
-      link.href = url
-    } else {
-      const el = document.createElement('link')
-      el.id = 'google-font'
-      el.rel = 'stylesheet'
-      el.href = url
-      document.head.appendChild(el)
-    }
-    document.body.style.fontFamily = `'${font}', system-ui, sans-serif`
-  }, [font])
-
   const toggleTheme = () => {
     setTheme(prev => prev === 'light' ? 'dark' : 'light')
   }
 
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme, settings: { primary_color: primary, secondary_color: secondary, font_family: font, theme } }}>
+    <ThemeContext.Provider value={{ theme, toggleTheme, settings: { primary_color: primary, secondary_color: secondary, font_family: storeSettings?.font_family || defaults.font_family, theme } }}>
       {children}
     </ThemeContext.Provider>
   )

@@ -50,7 +50,11 @@ export default function Checkout() {
         window.location.href = payment.init_point
       }
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Error al procesar el pedido')
+      console.error('Checkout error details:', err)
+      const errorMsg = err.response?.data?.error ||
+        err.message ||
+        'Error al procesar el pedido. Por favor, inténtalo de nuevo.'
+      setError(errorMsg)
     }
   }
 
@@ -177,7 +181,7 @@ export default function Checkout() {
                 className="w-full mt-6 py-3 rounded-lg text-white font-semibold transition hover:opacity-90 disabled:opacity-50"
                 style={{ backgroundColor: 'var(--color-primary)' }}
               >
-                {createPreference.isPending ? 'Redirigiendo a Mercado Pago...' : 'Ir a Pagar'}
+                {createOrder.isPending ? 'Creando pedido...' : createPreference.isPending ? 'Redirigiendo a Mercado Pago...' : 'Ir a Pagar'}
               </button>
 
               <p className="text-xs text-gray-400 text-center mt-3">
