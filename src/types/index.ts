@@ -104,6 +104,8 @@ export interface StoreSettings {
   seo_title?: string
   seo_description?: string
   currency: string
+  font_family?: string
+  theme?: 'light' | 'dark'
 }
 
 export interface PaymentPreference {
