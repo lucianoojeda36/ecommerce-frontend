@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { useCart, useCreateOrder, useCreatePreference, useAddresses } from '../../api/hooks'
 import Loading from '../../components/Loading'
+import type { Order } from '../../types'
 
 export default function Checkout() {
   const { data: cart, isLoading: cartLoading } = useCart()
@@ -17,13 +18,15 @@ export default function Checkout() {
   })
   const [notes, setNotes] = useState('')
   const [error, setError] = useState('')
+  const [isCheckingOut, setIsCheckingOut] = useState(false)
+  const [createdOrder, setCreatedOrder] = useState<Order | null>(null)
 
   if (cartLoading) return <Loading />
 
   const items = cart?.items || []
   const total = cart?.total || 0
 
-  if (items.length === 0) {
+  if (items.length === 0 && !isCheckingOut) {
     navigate('/cart')
     return null
   }
@@ -39,15 +42,20 @@ export default function Checkout() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
+    setIsCheckingOut(true)
 
+    let orderWasCreated = false
     try {
       const shipping_address = getAddressData()
       const { data: order } = await createOrder.mutateAsync({ shipping_address, notes })
+      orderWasCreated = true
+      setCreatedOrder(order)
 
       const { data: payment } = await createPreference.mutateAsync(order.id)
 
-      if (payment.init_point) {
-        window.location.href = payment.init_point
+      const redirectUrl = import.meta.env.DEV ? payment.sandbox_init_point : payment.init_point
+      if (redirectUrl) {
+        window.location.href = redirectUrl
       }
     } catch (err: any) {
       console.error('Checkout error details:', err)
@@ -55,6 +63,12 @@ export default function Checkout() {
         err.message ||
         'Error al procesar el pedido. Por favor, inténtalo de nuevo.'
       setError(errorMsg)
+      // If the order was already created, the cart is already empty on the
+      // backend — leave isCheckingOut true so we don't bounce to /cart and
+      // let the user resubmit (which would create a duplicate order).
+      if (!orderWasCreated) {
+        setIsCheckingOut(false)
+      }
     }
   }
 
@@ -63,7 +77,17 @@ export default function Checkout() {
       <h1 className="text-2xl font-bold mb-6">Checkout</h1>
 
       {error && (
-        <div className="p-3 rounded-lg bg-red-50 text-red-600 text-sm mb-4">{error}</div>
+        <div className="p-3 rounded-lg bg-red-50 text-red-600 text-sm mb-4">
+          {error}
+          {createdOrder && (
+            <>
+              {' '}Tu pedido fue creado. Podés verlo en{' '}
+              <Link to={`/orders/${createdOrder.id}`} className="underline font-medium">
+                tus pedidos
+              </Link>.
+            </>
+          )}
+        </div>
       )}
 
       <form onSubmit={handleSubmit}>
@@ -177,7 +201,7 @@ export default function Checkout() {
 
               <button
                 type="submit"
-                disabled={createOrder.isPending || createPreference.isPending}
+                disabled={createOrder.isPending || createPreference.isPending || !!createdOrder}
                 className="w-full mt-6 py-3 rounded-lg text-white font-semibold transition hover:opacity-90 disabled:opacity-50"
                 style={{ backgroundColor: 'var(--color-primary)' }}
               >
