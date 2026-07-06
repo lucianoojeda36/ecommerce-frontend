@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, Link } from 'react-router-dom'
 import { useProduct, useAddToCart, useCart } from '../../api/hooks'
 import { useAuth } from '../../context/AuthContext'
 import Loading from '../../components/Loading'
@@ -115,14 +115,14 @@ export default function ProductDetail() {
           )
         ) : (
           <div className="p-4 rounded-lg bg-blue-50 text-blue-700 text-sm">
-            <a href="/login" className="font-semibold underline">Inicia sesión</a> para agregar al carrito
+            <Link to="/login" className="font-semibold underline">Inicia sesión</Link> para agregar al carrito
           </div>
         )}
 
         {inCart && (
           <div className="mt-4 p-4 rounded-lg" style={{ backgroundColor: '#f0fdf4' }}>
             <p className="text-green-700 text-sm">
-              Ya tienes {inCart.quantity} unidades en tu <a href="/cart" className="font-semibold underline">carrito</a>
+              Ya tienes {inCart.quantity} unidades en tu <Link to="/cart" className="font-semibold underline">carrito</Link>
             </p>
           </div>
         )}
