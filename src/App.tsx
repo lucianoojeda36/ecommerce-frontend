@@ -8,6 +8,7 @@ import Login from './pages/auth/Login'
 import Register from './pages/auth/Register'
 import Cart from './pages/cart/Cart'
 import Checkout from './pages/cart/Checkout'
+import PaymentResult from './pages/payments/PaymentResult'
 import Orders from './pages/orders/Orders'
 import OrderDetail from './pages/orders/OrderDetail'
 import Profile from './pages/profile/Profile'
@@ -30,6 +31,9 @@ export default function App() {
         <Route element={<ProtectedRoute />}>
           <Route path="/cart" element={<Cart />} />
           <Route path="/checkout" element={<Checkout />} />
+          <Route path="/payments/success" element={<PaymentResult />} />
+          <Route path="/payments/failure" element={<PaymentResult />} />
+          <Route path="/payments/pending" element={<PaymentResult />} />
           <Route path="/orders" element={<Orders />} />
           <Route path="/orders/:id" element={<OrderDetail />} />
           <Route path="/profile" element={<Profile />} />
