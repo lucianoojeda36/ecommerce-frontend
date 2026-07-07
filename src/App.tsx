@@ -4,6 +4,7 @@ import { ProtectedRoute, AdminRoute } from './components/ProtectedRoute'
 import Home from './pages/public/Home'
 import Products from './pages/public/Products'
 import ProductDetail from './pages/public/ProductDetail'
+import Contact from './pages/public/Contact'
 import Login from './pages/auth/Login'
 import Register from './pages/auth/Register'
 import Cart from './pages/cart/Cart'
@@ -25,6 +26,7 @@ export default function App() {
         <Route path="/" element={<Home />} />
         <Route path="/products" element={<Products />} />
         <Route path="/products/:slug" element={<ProductDetail />} />
+        <Route path="/contacto" element={<Contact />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
 

@@ -245,3 +245,11 @@ export function useUsers(page = 1) {
     queryFn: () => api.get<PaginatedResponse<import('../types').User>>('/users', { params: { page } }).then(r => r.data),
   })
 }
+
+// ─── Contact ───
+export function useSendContactMessage() {
+  return useMutation({
+    mutationFn: (data: { name: string; email: string; subject: string; message: string }) =>
+      api.post('/contact', data),
+  })
+}

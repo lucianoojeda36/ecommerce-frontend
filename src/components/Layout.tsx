@@ -31,6 +31,12 @@ export default function Layout() {
               Productos
             </Link>
 
+            <Link to="/contacto" className="px-3 py-2 rounded-lg text-sm font-medium transition-colors" style={{ color: 'var(--color-text-secondary)' }}
+              onMouseEnter={e => e.currentTarget.style.color = 'var(--color-text)'}
+              onMouseLeave={e => e.currentTarget.style.color = 'var(--color-text-secondary)'}>
+              Contacto
+            </Link>
+
             <Link to="/cart" className="relative px-3 py-2 rounded-lg text-sm font-medium transition-colors" style={{ color: 'var(--color-text-secondary)' }}
               onMouseEnter={e => e.currentTarget.style.color = 'var(--color-text)'}
               onMouseLeave={e => e.currentTarget.style.color = 'var(--color-text-secondary)'}>
