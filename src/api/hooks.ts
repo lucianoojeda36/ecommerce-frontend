@@ -209,6 +209,12 @@ export function useCreatePreference() {
   })
 }
 
+export function useRetryPayment() {
+  return useMutation({
+    mutationFn: (order_id: string) => api.post<PaymentPreference>('/payments/create-preference', { order_id }),
+  })
+}
+
 // ─── Admin ───
 export function useStoreSettings() {
   return useQuery({

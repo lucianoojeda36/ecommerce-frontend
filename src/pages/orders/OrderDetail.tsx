@@ -1,5 +1,5 @@
 import { useParams } from 'react-router-dom'
-import { useOrder } from '../../api/hooks'
+import { useOrder, useRetryPayment } from '../../api/hooks'
 import Loading from '../../components/Loading'
 
 const statusLabels: Record<string, string> = {
@@ -10,6 +10,20 @@ const statusLabels: Record<string, string> = {
 export default function OrderDetail() {
   const { id } = useParams()
   const { data: order, isLoading } = useOrder(id!)
+  const retryPayment = useRetryPayment()
+
+  const canRetryPayment = order?.status === 'pending' || order?.status === 'cancelled'
+
+  const handleRetryPayment = async () => {
+    if (!order) return
+    try {
+      const { data: payment } = await retryPayment.mutateAsync(order.id)
+      const redirectUrl = import.meta.env.DEV ? payment.sandbox_init_point : payment.init_point
+      window.location.href = redirectUrl
+    } catch {
+      alert('No se pudo generar el link de pago. Intentá de nuevo.')
+    }
+  }
 
   if (isLoading) return <Loading />
   if (!order) return <p className="text-center py-12 text-gray-500">Orden no encontrada</p>
@@ -27,6 +41,17 @@ export default function OrderDetail() {
         <span className="text-sm font-medium">Estado: </span>
         <span className="font-semibold">{statusLabels[order.status] || order.status}</span>
       </div>
+
+      {canRetryPayment && (
+        <button
+          onClick={handleRetryPayment}
+          disabled={retryPayment.isPending}
+          className="mb-6 w-full py-3 rounded-lg text-white font-semibold transition hover:opacity-90 disabled:opacity-50"
+          style={{ backgroundColor: 'var(--color-primary)' }}
+        >
+          {retryPayment.isPending ? 'Redirigiendo a Mercado Pago...' : 'Volver a pagar'}
+        </button>
+      )}
 
       {order.items && (
         <div className="space-y-3 mb-6">

@@ -45,7 +45,7 @@ export default function Products() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
             </svg>
             <input type="text" value={searchInput} onChange={e => setSearchInput(e.target.value)}
-              placeholder="Buscar productos..." className="pl-10" />
+              placeholder="Buscar productos..." className="w-full !pl-10" />
           </div>
           <button type="submit" className="px-6 py-2.5 rounded-lg text-white text-sm font-semibold transition-all hover:opacity-90 hover:shadow-md"
             style={{ backgroundColor: 'var(--color-primary)' }}>

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useStoreSettings, useUpdateSettings } from '../../api/hooks'
 import Loading from '../../components/Loading'
+import Modal from '../../components/Modal'
 import { useTheme } from '../../context/ThemeContext'
 
 const FONTS = ['Inter', 'Roboto', 'Open Sans', 'Lato', 'Montserrat', 'Poppins', 'Nunito', 'Raleway', 'Work Sans', 'DM Sans']
@@ -18,6 +19,7 @@ export default function AdminSettings() {
     social_links: {} as Record<string, string>,
     font_family: 'Inter',
   })
+  const [showConfirmModal, setShowConfirmModal] = useState(false)
 
   useEffect(() => {
     if (settings) {
@@ -45,7 +47,15 @@ export default function AdminSettings() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    updateSettings.mutate(form)
+    setShowConfirmModal(true)
+  }
+
+  const handleConfirmSave = () => {
+    updateSettings.mutate(form, {
+      onSuccess: () => {
+        setShowConfirmModal(false)
+      },
+    })
   }
 
   return (
@@ -212,6 +222,18 @@ export default function AdminSettings() {
           {updateSettings.isPending ? 'Guardando...' : 'Guardar Configuración'}
         </button>
       </form>
+
+      <Modal
+        isOpen={showConfirmModal}
+        onClose={() => setShowConfirmModal(false)}
+        title="Guardar Configuración"
+        confirmText="Guardar"
+        cancelText="Cancelar"
+        onConfirm={handleConfirmSave}
+        isLoading={updateSettings.isPending}
+      >
+        ¿Estás seguro de que deseas guardar los cambios en la configuración de la tienda?
+      </Modal>
     </div>
   )
 }

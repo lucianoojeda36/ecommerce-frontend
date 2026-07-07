@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useProducts, useCreateProduct, useUpdateProduct, useDeleteProduct, useUploadImages, useCategories, useCreateCategory, useUploadCategoryImage } from '../../api/hooks'
 import Loading from '../../components/Loading'
 import FileInput from '../../components/FileInput'
+import Modal from '../../components/Modal'
 
 export default function AdminProducts() {
   const { data, isLoading } = useProducts({ page: 1 })
@@ -23,6 +24,7 @@ export default function AdminProducts() {
   })
   const [uploadFiles, setUploadFiles] = useState<File[]>([])
   const [categoryImage, setCategoryImage] = useState<File | null>(null)
+  const [productToDelete, setProductToDelete] = useState<string | null>(null)
 
   if (isLoading) return <Loading />
 
@@ -123,33 +125,65 @@ export default function AdminProducts() {
 
       {(showNew || editingId) && (
         <form onSubmit={handleSave} className="p-6 rounded-xl border border-gray-100 shadow-sm mb-6 space-y-4">
-          <h3 className="font-semibold">{editingId ? 'Editar Producto' : 'Nuevo Producto'}</h3>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="col-span-2">
-              <input placeholder="Nombre" required value={form.name}
+          <h3 className="font-semibold text-lg">{editingId ? 'Editar Producto' : 'Nuevo Producto'}</h3>
+
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Nombre del producto *</label>
+              <input placeholder="Ej: Camiseta deportiva blanca" required value={form.name}
                 onChange={e => setForm({ ...form, name: e.target.value })}
                 className="w-full px-4 py-2 border rounded-lg focus:outline-none" style={{ borderColor: '#d1d5db' }} />
             </div>
-            <div className="col-span-2">
-              <textarea placeholder="Descripción" value={form.description}
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Descripción</label>
+              <textarea placeholder="Describe las características del producto..." value={form.description}
                 onChange={e => setForm({ ...form, description: e.target.value })}
                 className="w-full px-4 py-2 border rounded-lg focus:outline-none" style={{ borderColor: '#d1d5db' }} rows={3} />
             </div>
-            <input type="number" placeholder="Precio" required value={form.price || ''}
-              onChange={e => setForm({ ...form, price: parseFloat(e.target.value) || 0 })}
-              className="px-4 py-2 border rounded-lg focus:outline-none" style={{ borderColor: '#d1d5db' }} />
-            <input type="number" placeholder="Precio comparativa" value={form.compare_price || ''}
-              onChange={e => setForm({ ...form, compare_price: parseFloat(e.target.value) || 0 })}
-              className="px-4 py-2 border rounded-lg focus:outline-none" style={{ borderColor: '#d1d5db' }} />
-            <input type="number" placeholder="Stock" required value={form.stock}
-              onChange={e => setForm({ ...form, stock: parseInt(e.target.value) || 0 })}
-              className="px-4 py-2 border rounded-lg focus:outline-none" style={{ borderColor: '#d1d5db' }} />
-            <select value={form.category_id}
-              onChange={e => setForm({ ...form, category_id: e.target.value })}
-              className="px-4 py-2 border rounded-lg focus:outline-none" style={{ borderColor: '#d1d5db' }}>
-              <option value="">Sin categoría</option>
-              {categories?.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Precio de venta *</label>
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-lg font-medium pointer-events-none" style={{ color: 'var(--color-text-muted)' }}>$</span>
+                  <input type="number" placeholder="0.00" required value={form.price || ''}
+                    onChange={e => setForm({ ...form, price: parseFloat(e.target.value) || 0 })}
+                    className="w-full !pl-8" />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Precio comparativa (opcional)</label>
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-lg font-medium pointer-events-none" style={{ color: 'var(--color-text-muted)' }}>$</span>
+                  <input type="number" placeholder="0.00" value={form.compare_price || ''}
+                    onChange={e => setForm({ ...form, compare_price: parseFloat(e.target.value) || 0 })}
+                    className="w-full !pl-8" />
+                </div>
+                <p className="text-xs text-gray-400 mt-1">Precio anterior para mostrar descuento</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Stock (unidades) *</label>
+                <input type="number" placeholder="Ej: 50" required value={form.stock}
+                  onChange={e => setForm({ ...form, stock: parseInt(e.target.value) || 0 })}
+                  className="w-full px-4 py-2 border rounded-lg focus:outline-none" style={{ borderColor: '#d1d5db' }} />
+                <p className="text-xs text-gray-400 mt-1">Cantidad disponible en inventario</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Categoría</label>
+                <select value={form.category_id}
+                  onChange={e => setForm({ ...form, category_id: e.target.value })}
+                  className="w-full px-4 py-2 border rounded-lg focus:outline-none" style={{ borderColor: '#d1d5db' }}>
+                  <option value="">Sin categoría</option>
+                  {categories?.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+              </div>
+            </div>
           </div>
 
           <FileInput
@@ -204,13 +238,32 @@ export default function AdminProducts() {
               className="px-3 py-1 text-sm border rounded-lg hover:bg-gray-50 transition">
               Editar
             </button>
-            <button onClick={() => { if (confirm('¿Eliminar producto?')) deleteProduct.mutate(product.id) }}
+            <button onClick={() => setProductToDelete(product.id)}
               className="px-3 py-1 text-sm border text-red-500 rounded-lg hover:bg-red-50 transition">
               Eliminar
             </button>
           </div>
         ))}
       </div>
+
+      <Modal
+        isOpen={productToDelete !== null}
+        onClose={() => setProductToDelete(null)}
+        title="Eliminar Producto"
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        variant="danger"
+        onConfirm={() => {
+          if (productToDelete) {
+            deleteProduct.mutate(productToDelete, {
+              onSuccess: () => setProductToDelete(null),
+            })
+          }
+        }}
+        isLoading={deleteProduct.isPending}
+      >
+        ¿Estás seguro de que deseas eliminar este producto? Esta acción no se puede deshacer.
+      </Modal>
     </div>
   )
 }

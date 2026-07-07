@@ -1,5 +1,5 @@
 import { useSearchParams, Link } from 'react-router-dom'
-import { useOrder } from '../../api/hooks'
+import { useOrder, useRetryPayment } from '../../api/hooks'
 
 const statusConfig: Record<string, { title: string; message: string; bg: string; color: string }> = {
   approved: {
@@ -39,8 +39,21 @@ export default function PaymentResult() {
   const status = searchParams.get('collection_status') || searchParams.get('status') || 'pending'
   const orderId = searchParams.get('external_reference')
   const { data: order } = useOrder(orderId!)
+  const retryPayment = useRetryPayment()
 
   const config = statusConfig[status] || statusConfig.pending
+  const canRetryPayment = (status === 'rejected' || status === 'failure') && orderId
+
+  const handleRetryPayment = async () => {
+    if (!orderId) return
+    try {
+      const { data: payment } = await retryPayment.mutateAsync(orderId)
+      const redirectUrl = import.meta.env.DEV ? payment.sandbox_init_point : payment.init_point
+      window.location.href = redirectUrl
+    } catch {
+      alert('No se pudo generar el link de pago. Intentá de nuevo.')
+    }
+  }
 
   return (
     <div className="max-w-lg mx-auto text-center">
@@ -54,7 +67,17 @@ export default function PaymentResult() {
           </p>
         )}
 
-        <div className="flex justify-center gap-4">
+        <div className="flex justify-center gap-4 flex-wrap">
+          {canRetryPayment && (
+            <button
+              onClick={handleRetryPayment}
+              disabled={retryPayment.isPending}
+              className="px-5 py-2 rounded-lg text-white font-semibold transition hover:opacity-90 disabled:opacity-50"
+              style={{ backgroundColor: 'var(--color-primary)' }}
+            >
+              {retryPayment.isPending ? 'Redirigiendo...' : 'Volver a pagar'}
+            </button>
+          )}
           {orderId && (
             <Link
               to={`/orders/${orderId}`}
