@@ -65,11 +65,11 @@ export default function Login() {
         ¿No tienes cuenta? <Link to="/register" className="font-semibold" style={{ color: 'var(--color-primary)' }}>Registrate</Link>
       </p>
 
-      <div className="mt-6 p-4 rounded-lg bg-gray-50 text-sm text-gray-500">
+      {/* <div className="mt-6 p-4 rounded-lg bg-gray-50 text-sm text-gray-500">
         <p className="font-medium mb-1">Demo:</p>
         <p>Admin: admin@tienda.com / admin123</p>
         <p>Cliente: cliente@demo.com / cliente123</p>
-      </div>
+      </div> */}
     </div>
   )
 }
