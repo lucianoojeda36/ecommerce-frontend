@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { useOrders } from '../../api/hooks'
+import { useOrders, useUnreadByOrder } from '../../api/hooks'
 import Loading from '../../components/Loading'
 
 const statusColors: Record<string, string> = {
@@ -22,6 +22,12 @@ const statusLabels: Record<string, string> = {
 
 export default function Orders() {
   const { data, isLoading } = useOrders()
+  const { data: unreadByOrder = [] } = useUnreadByOrder()
+
+  const getUnreadCount = (orderId: string) => {
+    const found = unreadByOrder.find((u: any) => u.order_id === orderId)
+    return found ? parseInt(found.count) : 0
+  }
 
   if (isLoading) return <Loading />
 
@@ -45,30 +51,50 @@ export default function Orders() {
       <h1 className="text-2xl font-bold mb-6">Mis Órdenes</h1>
 
       <div className="space-y-4">
-        {data.orders.map((order) => (
-          <Link
-            key={order.id}
-            to={`/orders/${order.id}`}
-            className="block p-6 rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition"
-          >
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-sm text-gray-500">
-                {new Date(order.created_at).toLocaleDateString('es-AR', {
-                  day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit'
-                })}
-              </span>
-              <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusColors[order.status] || ''}`}>
-                {statusLabels[order.status] || order.status}
-              </span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-600">#{order.id.substring(0, 8)}</span>
-              <span className="text-lg font-bold" style={{ color: 'var(--color-primary)' }}>
-                ${Number(order.total).toLocaleString()}
-              </span>
-            </div>
-          </Link>
-        ))}
+        {data.orders.map((order) => {
+          const unread = getUnreadCount(order.id)
+          return (
+            <Link
+              key={order.id}
+              to={`/orders/${order.id}`}
+              className={`block p-5 rounded-xl shadow-sm hover:shadow-lg transition-all ${
+                unread > 0
+                  ? 'border-2 border-amber-400 bg-amber-50/70'
+                  : 'border border-gray-100 hover:border-gray-200'
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  {unread > 0 && (
+                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500 text-white">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
+                      </svg>
+                      <span className="text-xs font-bold">{unread} {unread === 1 ? 'respuesta' : 'respuestas'}</span>
+                    </div>
+                  )}
+                  <div>
+                    <p className="text-sm text-gray-500">
+                      {new Date(order.created_at).toLocaleDateString('es-AR', {
+                        day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit'
+                      })}
+                    </p>
+                    <p className="text-sm font-semibold text-gray-700">#{order.id.substring(0, 8)}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusColors[order.status] || ''}`}>
+                    {statusLabels[order.status] || order.status}
+                  </span>
+                  <span className="text-lg font-bold" style={{ color: 'var(--color-primary)' }}>
+                    ${Number(order.total).toLocaleString()}
+                  </span>
+                </div>
+              </div>
+            </Link>
+          )
+        })}
       </div>
     </div>
   )

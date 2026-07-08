@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from './client'
-import type { Product, Category, CartItem, Order, Address, StoreSettings, PaymentPreference, DashboardStats, PaginatedResponse, ShippingConfig } from '../types'
+import type { Product, Category, CartItem, Order, Address, StoreSettings, PaymentPreference, DashboardStats, PaginatedResponse, ShippingConfig, OrderMessage } from '../types'
 
 // ─── Products ───
 export function useProducts(params?: { page?: number; category?: string; search?: string }) {
@@ -175,6 +175,74 @@ export function useUpdateOrderStatus() {
     mutationFn: ({ id, status }: { id: string; status: string }) =>
       api.put(`/orders/${id}/status`, { status }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-orders'] }),
+  })
+}
+
+export function useAdminOrder(id: string) {
+  return useQuery({
+    queryKey: ['admin-order', id],
+    queryFn: () => api.get<Order>(`/orders/${id}`).then(r => r.data),
+    enabled: !!id,
+  })
+}
+
+// ─── Order Messages ───
+export function useOrderMessages(orderId: string) {
+  return useQuery({
+    queryKey: ['order-messages', orderId],
+    queryFn: () => api.get<OrderMessage[]>(`/orders/${orderId}/messages`).then(r => r.data),
+    enabled: !!orderId,
+    refetchInterval: 30000,
+  })
+}
+
+export function useSendMessage() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ orderId, content }: { orderId: string; content: string }) =>
+      api.post<OrderMessage>(`/orders/${orderId}/messages`, { content }),
+    onSuccess: (_data, variables) => {
+      qc.invalidateQueries({ queryKey: ['order-messages', variables.orderId] })
+    },
+  })
+}
+
+export function useMarkMessagesRead(orderId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: () => api.put(`/orders/${orderId}/messages/read`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['order-messages', orderId] })
+      qc.invalidateQueries({ queryKey: ['unread-count'] })
+      qc.invalidateQueries({ queryKey: ['unread-by-order'] })
+    },
+  })
+}
+
+export function useUnreadCount() {
+  return useQuery({
+    queryKey: ['unread-count'],
+    queryFn: () => api.get<{ count: number }>('/orders/messages/unread').then(r => r.data.count),
+    refetchInterval: 30000,
+  })
+}
+
+export function useMarkAllRead() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: () => api.put('/orders/messages/read-all'),
+    onSuccess: () => {
+      qc.setQueryData(['unread-count'], 0)
+      qc.invalidateQueries({ queryKey: ['unread-by-order'] })
+    },
+  })
+}
+
+export function useUnreadByOrder() {
+  return useQuery({
+    queryKey: ['unread-by-order'],
+    queryFn: () => api.get<{ order_id: string; count: string }[]>('/orders/messages/unread/by-order').then(r => r.data),
+    refetchInterval: 30000,
   })
 }
 

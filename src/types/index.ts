@@ -75,6 +75,16 @@ export interface OrderItem {
   images?: string[]
 }
 
+export interface OrderMessage {
+  id: string
+  order_id: string
+  sender_id: string
+  sender_role: 'customer' | 'admin'
+  content: string
+  created_at: string
+  read: boolean
+}
+
 export interface Address {
   id?: string
   label?: string

@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
-import { useParams } from 'react-router-dom'
-import { useOrder, useRetryPayment, useMarkMessagesRead } from '../../api/hooks'
+import { useParams, useNavigate } from 'react-router-dom'
+import { useAdminOrder, useUpdateOrderStatus, useMarkMessagesRead } from '../../api/hooks'
 import Loading from '../../components/Loading'
 import OrderChat from '../../components/OrderChat'
 
@@ -9,58 +9,67 @@ const statusLabels: Record<string, string> = {
   shipped: 'Enviado', delivered: 'Entregado', cancelled: 'Cancelado',
 }
 
-export default function OrderDetail() {
+const statuses = ['pending', 'confirmed', 'preparing', 'shipped', 'delivered', 'cancelled']
+
+export default function AdminOrderDetail() {
   const { id } = useParams()
-  const { data: order, isLoading } = useOrder(id!)
-  const retryPayment = useRetryPayment()
+  const navigate = useNavigate()
+  const { data: order, isLoading } = useAdminOrder(id!)
+  const updateStatus = useUpdateOrderStatus()
   const markRead = useMarkMessagesRead(id!)
 
   useEffect(() => {
     if (id) markRead.mutate()
   }, [id])
 
-  const canRetryPayment = order?.status === 'pending' || order?.status === 'cancelled'
-
-  const handleRetryPayment = async () => {
-    if (!order) return
-    try {
-      const { data: payment } = await retryPayment.mutateAsync(order.id)
-      const redirectUrl = import.meta.env.DEV ? payment.sandbox_init_point : payment.init_point
-      window.location.href = redirectUrl
-    } catch {
-      alert('No se pudo generar el link de pago. Intentá de nuevo.')
-    }
-  }
-
   if (isLoading) return <Loading />
   if (!order) return <p className="text-center py-12 text-gray-500">Orden no encontrada</p>
 
   return (
-    <div className="max-w-3xl mx-auto">
-      <h1 className="text-2xl font-bold mb-2">Orden #{order.id.substring(0, 8)}</h1>
-      <p className="text-sm text-gray-500 mb-6">
-        {new Date(order.created_at).toLocaleDateString('es-AR', {
-          day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit'
-        })}
-      </p>
+    <div className="max-w-4xl">
+      <button onClick={() => navigate('/admin/orders')}
+        className="mb-4 text-sm font-medium flex items-center gap-1 transition hover:opacity-80"
+        style={{ color: 'var(--color-primary)' }}>
+        <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+        </svg>
+        Volver a órdenes
+      </button>
 
-      <div className="mb-6 p-4 rounded-lg" style={{ backgroundColor: '#f0f7ff' }}>
-        <span className="text-sm font-medium">Estado: </span>
-        <span className="font-semibold">{statusLabels[order.status] || order.status}</span>
+      <div className="flex items-start justify-between mb-6">
+        <div>
+          <h1 className="text-2xl font-bold">Orden #{order.id.substring(0, 8)}</h1>
+          <p className="text-sm text-gray-500 mt-1">
+            {order.user_name} · {order.user_email}
+          </p>
+          <p className="text-xs text-gray-400 mt-1">
+            {new Date(order.created_at).toLocaleDateString('es-AR', {
+              day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit'
+            })}
+          </p>
+        </div>
+        <p className="text-2xl font-bold" style={{ color: 'var(--color-primary)' }}>
+          ${Number(order.total).toLocaleString()}
+        </p>
       </div>
 
-      {canRetryPayment && (
-        <button
-          onClick={handleRetryPayment}
-          disabled={retryPayment.isPending}
-          className="mb-6 w-full py-3 rounded-lg text-white font-semibold transition hover:opacity-90 disabled:opacity-50"
-          style={{ backgroundColor: 'var(--color-primary)' }}
+      <div className="mb-6 p-4 rounded-lg flex items-center gap-3" style={{ backgroundColor: '#f0f7ff' }}>
+        <span className="text-sm font-medium">Estado:</span>
+        <select
+          value={order.status}
+          onChange={(e) => updateStatus.mutate({ id: order.id, status: e.target.value })}
+          className="px-3 py-1 border rounded-lg text-sm font-semibold focus:outline-none"
+          style={{ borderColor: '#d1d5db' }}
         >
-          {retryPayment.isPending ? 'Redirigiendo a Mercado Pago...' : 'Volver a pagar'}
-        </button>
-      )}
+          {statuses.map((s) => (
+            <option key={s} value={s}>
+              {statusLabels[s]}
+            </option>
+          ))}
+        </select>
+      </div>
 
-      {order.items && (
+      {order.items && order.items.length > 0 && (
         <div className="space-y-3 mb-6">
           <h2 className="text-lg font-semibold">Productos</h2>
           {order.items.map((item) => (
@@ -82,13 +91,20 @@ export default function OrderDetail() {
         </div>
       )}
 
-      <div className="p-6 rounded-xl border border-gray-100">
+      <div className="p-6 rounded-xl border border-gray-100 mb-6">
         <h2 className="text-lg font-semibold mb-4">Dirección de Envío</h2>
         <p className="text-gray-600">
           {order.shipping_address?.street} {order.shipping_address?.number}
           {order.shipping_address?.city && <>, {order.shipping_address.city}</>}
           {order.shipping_address?.state && <>, {order.shipping_address.state}</>}
         </p>
+
+        {order.notes && (
+          <div className="mt-3 p-3 rounded-lg bg-gray-50">
+            <p className="text-sm font-medium text-gray-700">Notas del cliente:</p>
+            <p className="text-sm text-gray-600 mt-1">{order.notes}</p>
+          </div>
+        )}
 
         <div className="border-t mt-4 pt-4 space-y-2">
           {order.shipping_cost > 0 && (
@@ -112,9 +128,7 @@ export default function OrderDetail() {
         </div>
       </div>
 
-      <div className="mt-6">
-        <OrderChat orderId={order.id} onSent={() => markRead.mutate()} />
-      </div>
+      <OrderChat orderId={order.id} onSent={() => markRead.mutate()} />
     </div>
   )
 }
