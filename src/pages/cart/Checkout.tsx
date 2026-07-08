@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { useCart, useCreateOrder, useCreatePreference, useAddresses } from '../../api/hooks'
+import { useCart, useCreateOrder, useCreatePreference, useAddresses, useCalculateShipping, useStoreSettings } from '../../api/hooks'
 import Loading from '../../components/Loading'
 import type { Order } from '../../types'
 
@@ -21,10 +21,26 @@ export default function Checkout() {
   const [isCheckingOut, setIsCheckingOut] = useState(false)
   const [createdOrder, setCreatedOrder] = useState<Order | null>(null)
 
-  if (cartLoading) return <Loading />
+  const { data: settings } = useStoreSettings()
 
   const items = cart?.items || []
-  const total = cart?.total || 0
+  const subtotal = cart?.total || 0
+
+  const getSelectedProvince = () => {
+    if (selectedAddress !== 'new' && addresses) {
+      const addr = addresses.find(a => a.id === selectedAddress)
+      if (addr) return addr.state
+    }
+    return form.state
+  }
+
+  const province = getSelectedProvince()
+  const { data: shippingResult } = useCalculateShipping(province, subtotal)
+  const shippingCost = shippingResult?.cost ?? 0
+  const freeShipping = shippingResult?.free_shipping ?? false
+  const total = subtotal + shippingCost
+
+  if (cartLoading) return <Loading />
 
   if (items.length === 0 && !isCheckingOut) {
     navigate('/cart')
@@ -47,7 +63,7 @@ export default function Checkout() {
     let orderWasCreated = false
     try {
       const shipping_address = getAddressData()
-      const { data: order } = await createOrder.mutateAsync({ shipping_address, notes })
+      const { data: order } = await createOrder.mutateAsync({ shipping_address, notes, shipping_cost: shippingCost })
       orderWasCreated = true
       setCreatedOrder(order)
 
@@ -190,6 +206,21 @@ export default function Checkout() {
                     <span className="font-medium">${(item.price * item.quantity).toLocaleString()}</span>
                   </div>
                 ))}
+              </div>
+
+              <div className="border-t pt-3 space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">Subtotal</span>
+                  <span className="font-medium">${subtotal.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">Envío{province ? ` (${province})` : ''}</span>
+                  {freeShipping ? (
+                    <span className="font-medium text-green-600">Gratis</span>
+                  ) : (
+                    <span className="font-medium">${shippingCost.toLocaleString()}</span>
+                  )}
+                </div>
               </div>
 
               <div className="border-t pt-4 flex justify-between items-center">

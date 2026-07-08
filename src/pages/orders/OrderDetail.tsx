@@ -83,11 +83,25 @@ export default function OrderDetail() {
           {order.shipping_address?.state && <>, {order.shipping_address.state}</>}
         </p>
 
-        <div className="border-t mt-4 pt-4 flex justify-between items-center">
-          <span className="font-semibold text-lg">Total</span>
-          <span className="text-2xl font-bold" style={{ color: 'var(--color-primary)' }}>
-            ${Number(order.total).toLocaleString()}
-          </span>
+        <div className="border-t mt-4 pt-4 space-y-2">
+          {order.shipping_cost > 0 && (
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-600">Envío</span>
+              <span className="font-medium">${Number(order.shipping_cost).toLocaleString()}</span>
+            </div>
+          )}
+          {order.shipping_cost === 0 && order.total > 0 && (
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-600">Envío</span>
+              <span className="font-medium text-green-600">Gratis</span>
+            </div>
+          )}
+          <div className="flex justify-between items-center">
+            <span className="font-semibold text-lg">Total</span>
+            <span className="text-2xl font-bold" style={{ color: 'var(--color-primary)' }}>
+              ${Number(order.total).toLocaleString()}
+            </span>
+          </div>
         </div>
       </div>
     </div>

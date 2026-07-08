@@ -56,6 +56,7 @@ export interface Order {
   status: 'pending' | 'confirmed' | 'preparing' | 'shipped' | 'delivered' | 'cancelled'
   total: number
   shipping_address: Address
+  shipping_cost: number
   payment_id?: string
   notes?: string
   created_at: string
@@ -88,6 +89,17 @@ export interface Address {
   is_default?: boolean
 }
 
+export interface ShippingRate {
+  province: string
+  cost: number
+}
+
+export interface ShippingConfig {
+  rates: ShippingRate[]
+  default_rate: number
+  free_shipping_threshold: number
+}
+
 export interface StoreSettings {
   id: string
   store_name: string
@@ -106,6 +118,7 @@ export interface StoreSettings {
   currency: string
   font_family?: string
   theme?: 'light' | 'dark'
+  shipping_config?: ShippingConfig
 }
 
 export interface PaymentPreference {

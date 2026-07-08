@@ -1,14 +1,17 @@
 import { useState, useEffect } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { useStoreSettings, useUpdateSettings } from '../../api/hooks'
 import Loading from '../../components/Loading'
 import Modal from '../../components/Modal'
 import { useTheme } from '../../context/ThemeContext'
+import type { ShippingRate } from '../../types'
 
 const FONTS = ['Inter', 'Roboto', 'Open Sans', 'Lato', 'Montserrat', 'Poppins', 'Nunito', 'Raleway', 'Work Sans', 'DM Sans']
 
 export default function AdminSettings() {
   const { data: settings, isLoading } = useStoreSettings()
   const updateSettings = useUpdateSettings()
+  const queryClient = useQueryClient()
   const { theme, toggleTheme } = useTheme()
 
   const [form, setForm] = useState({
@@ -18,11 +21,15 @@ export default function AdminSettings() {
     seo_title: '', seo_description: '', currency: 'ARS',
     social_links: {} as Record<string, string>,
     font_family: 'Inter',
+    shipping_rates: [] as ShippingRate[],
+    shipping_default_rate: 0,
+    free_shipping_threshold: 0,
   })
   const [showConfirmModal, setShowConfirmModal] = useState(false)
 
   useEffect(() => {
     if (settings) {
+      const sc = (settings as any).shipping_config || {}
       setForm({
         store_name: settings.store_name || '',
         store_description: settings.store_description || '',
@@ -39,6 +46,9 @@ export default function AdminSettings() {
         currency: settings.currency || 'ARS',
         social_links: settings.social_links || {},
         font_family: (settings as any).font_family || 'Inter',
+        shipping_rates: sc.rates || [],
+        shipping_default_rate: sc.default_rate || 0,
+        free_shipping_threshold: sc.free_shipping_threshold || 0,
       })
     }
   }, [settings])
@@ -51,8 +61,38 @@ export default function AdminSettings() {
   }
 
   const handleConfirmSave = () => {
-    updateSettings.mutate(form, {
-      onSuccess: () => {
+    const { shipping_rates, shipping_default_rate, free_shipping_threshold, ...rest } = form
+    updateSettings.mutate({
+      ...rest,
+      shipping_config: {
+        rates: shipping_rates,
+        default_rate: shipping_default_rate,
+        free_shipping_threshold,
+      },
+    }, {
+      onSuccess: (response) => {
+        const data = (response as any).data || response
+        queryClient.setQueryData(['store-settings'], data)
+        setForm(prev => ({
+          store_name: data.store_name ?? prev.store_name,
+          store_description: data.store_description ?? prev.store_description,
+          store_logo: data.store_logo ?? prev.store_logo,
+          store_favicon: data.store_favicon ?? prev.store_favicon,
+          primary_color: data.primary_color ?? prev.primary_color,
+          secondary_color: data.secondary_color ?? prev.secondary_color,
+          about_us: data.about_us ?? prev.about_us,
+          contact_email: data.contact_email ?? prev.contact_email,
+          contact_phone: data.contact_phone ?? prev.contact_phone,
+          address: data.address ?? prev.address,
+          seo_title: data.seo_title ?? prev.seo_title,
+          seo_description: data.seo_description ?? prev.seo_description,
+          currency: data.currency ?? prev.currency,
+          social_links: data.social_links ?? prev.social_links,
+          font_family: (data as any).font_family ?? prev.font_family,
+          shipping_rates: (data as any).shipping_config?.rates ?? prev.shipping_rates,
+          shipping_default_rate: (data as any).shipping_config?.default_rate ?? prev.shipping_default_rate,
+          free_shipping_threshold: (data as any).shipping_config?.free_shipping_threshold ?? prev.free_shipping_threshold,
+        }))
         setShowConfirmModal(false)
       },
     })
@@ -201,6 +241,76 @@ export default function AdminSettings() {
           <textarea value={form.about_us} placeholder="Sobre nosotros"
             onChange={e => setForm({ ...form, about_us: e.target.value })}
             className="w-full px-4 py-2 border rounded-lg focus:outline-none" style={{ borderColor: '#d1d5db' }} rows={4} />
+        </div>
+
+        {/* Shipping */}
+        <div className="p-6 rounded-xl shadow-sm space-y-4" style={{ backgroundColor: 'var(--color-bg-card)', border: '1px solid var(--color-border)' }}>
+          <h3 className="font-semibold flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0H6.375a1.125 1.125 0 01-1.125-1.125V14.25m0 0h13.5m-13.5 0V5.625A1.125 1.125 0 016.375 4.5h8.25a1.125 1.125 0 011.125 1.125v3.75" />
+            </svg>
+            Envío
+          </h3>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Tarifa por defecto (resto del país)</label>
+              <input type="number" min="0" value={form.shipping_default_rate}
+                onChange={e => setForm({ ...form, shipping_default_rate: Number(e.target.value) })}
+                className="w-full px-4 py-2 border rounded-lg focus:outline-none" style={{ borderColor: '#d1d5db' }} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Envío gratis a partir de ($)</label>
+              <input type="number" min="0" value={form.free_shipping_threshold}
+                onChange={e => setForm({ ...form, free_shipping_threshold: Number(e.target.value) })}
+                placeholder="0 = desactivado"
+                className="w-full px-4 py-2 border rounded-lg focus:outline-none" style={{ borderColor: '#d1d5db' }} />
+            </div>
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-sm font-medium text-gray-700">Tarifas por provincia</label>
+              <button type="button" onClick={() => setForm({
+                ...form,
+                shipping_rates: [...form.shipping_rates, { province: '', cost: 0 }],
+              })}
+                className="text-sm px-3 py-1 rounded-lg text-white transition hover:opacity-90"
+                style={{ backgroundColor: 'var(--color-primary)' }}>
+                + Agregar
+              </button>
+            </div>
+            <div className="space-y-2">
+              {form.shipping_rates.map((rate, i) => (
+                <div key={i} className="flex gap-2 items-center">
+                  <input placeholder="Provincia" value={rate.province}
+                    onChange={e => {
+                      const rates = [...form.shipping_rates]
+                      rates[i] = { ...rates[i], province: e.target.value }
+                      setForm({ ...form, shipping_rates: rates })
+                    }}
+                    className="flex-1 px-4 py-2 border rounded-lg focus:outline-none" style={{ borderColor: '#d1d5db' }} />
+                  <input type="number" min="0" placeholder="Costo" value={rate.cost || ''}
+                    onChange={e => {
+                      const rates = [...form.shipping_rates]
+                      rates[i] = { ...rates[i], cost: Number(e.target.value) }
+                      setForm({ ...form, shipping_rates: rates })
+                    }}
+                    className="w-32 px-4 py-2 border rounded-lg focus:outline-none" style={{ borderColor: '#d1d5db' }} />
+                  <button type="button" onClick={() => setForm({
+                    ...form,
+                    shipping_rates: form.shipping_rates.filter((_, j) => j !== i),
+                  })}
+                    className="text-red-400 hover:text-red-600 transition p-2">
+                    ✕
+                  </button>
+                </div>
+              ))}
+              {form.shipping_rates.length === 0 && (
+                <p className="text-sm text-gray-400">No hay tarifas configuradas. Se usará la tarifa por defecto.</p>
+              )}
+            </div>
+          </div>
         </div>
 
         {/* SEO */}

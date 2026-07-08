@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from './client'
-import type { Product, Category, CartItem, Order, Address, StoreSettings, PaymentPreference, DashboardStats, PaginatedResponse } from '../types'
+import type { Product, Category, CartItem, Order, Address, StoreSettings, PaymentPreference, DashboardStats, PaginatedResponse, ShippingConfig } from '../types'
 
 // ─── Products ───
 export function useProducts(params?: { page?: number; category?: string; search?: string }) {
@@ -152,7 +152,7 @@ export function useOrder(id: string) {
 export function useCreateOrder() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (data: { shipping_address: Address; notes?: string }) =>
+    mutationFn: (data: { shipping_address: Address; notes?: string; shipping_cost?: number }) =>
       api.post('/orders', data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['orders'] })
@@ -199,6 +199,15 @@ export function useDeleteAddress() {
   return useMutation({
     mutationFn: (id: string) => api.delete(`/addresses/${id}`),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['addresses'] }),
+  })
+}
+
+// ─── Shipping ───
+export function useCalculateShipping(province: string, cartTotal: number) {
+  return useQuery({
+    queryKey: ['shipping', province, cartTotal],
+    queryFn: () => api.post<{ cost: number; free_shipping: boolean }>('/shipping/calculate', { province, cart_total: cartTotal }).then(r => r.data),
+    enabled: !!province,
   })
 }
 
