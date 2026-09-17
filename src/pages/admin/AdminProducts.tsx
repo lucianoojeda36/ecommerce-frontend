@@ -20,7 +20,7 @@ export default function AdminProducts() {
   const [newCatName, setNewCatName] = useState('')
   const [form, setForm] = useState({
     name: '', description: '', price: 0, compare_price: 0,
-    stock: 0, category_id: '', is_active: true,
+    stock: 0, category_id: '', is_active: true, weight_kg: 0,
   })
   const [uploadFiles, setUploadFiles] = useState<File[]>([])
   const [categoryImage, setCategoryImage] = useState<File | null>(null)
@@ -29,7 +29,7 @@ export default function AdminProducts() {
   if (isLoading) return <Loading />
 
   const resetForm = () => {
-    setForm({ name: '', description: '', price: 0, compare_price: 0, stock: 0, category_id: '', is_active: true })
+    setForm({ name: '', description: '', price: 0, compare_price: 0, stock: 0, category_id: '', is_active: true, weight_kg: 0 })
     setUploadFiles([])
   }
 
@@ -39,6 +39,7 @@ export default function AdminProducts() {
       name: product.name, description: product.description || '',
       price: Number(product.price), compare_price: Number(product.compare_price || 0),
       stock: product.stock, category_id: product.category_id || '', is_active: product.is_active,
+      weight_kg: Number(product.weight_kg || 0),
     })
   }
 
@@ -49,6 +50,7 @@ export default function AdminProducts() {
       price: Number(form.price),
       compare_price: form.compare_price > 0 ? Number(form.compare_price) : undefined,
       category_id: form.category_id || undefined,
+      weight_kg: Number(form.weight_kg) || undefined,
     }
 
     if (editingId) {
@@ -183,6 +185,14 @@ export default function AdminProducts() {
                   {categories?.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
               </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Peso (kg)</label>
+              <input type="number" step="0.001" min="0" placeholder="Ej: 0.5" value={form.weight_kg || ''}
+                onChange={e => setForm({ ...form, weight_kg: parseFloat(e.target.value) || 0 })}
+                className="w-full px-4 py-2 border rounded-lg focus:outline-none" style={{ borderColor: '#d1d5db' }} />
+              <p className="text-xs text-gray-400 mt-1">Opcional: si lo dejás vacío se usa el peso promedio configurado en Ajustes de envío</p>
             </div>
           </div>
 

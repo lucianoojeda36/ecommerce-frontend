@@ -98,6 +98,9 @@ export default function AdminOrderDetail() {
           {order.shipping_address?.city && <>, {order.shipping_address.city}</>}
           {order.shipping_address?.state && <>, {order.shipping_address.state}</>}
         </p>
+        <p className="text-sm text-gray-500 mt-1">
+          {order.delivery_method === 'sucursal' ? 'Retiro en sucursal OCA' : 'Envío a domicilio'}
+        </p>
 
         {order.notes && (
           <div className="mt-3 p-3 rounded-lg bg-gray-50">

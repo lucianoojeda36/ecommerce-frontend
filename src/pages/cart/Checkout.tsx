@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useCart, useCreateOrder, useCreatePreference, useAddresses, useCalculateShipping, useStoreSettings } from '../../api/hooks'
+import type { DeliveryMethod } from '../../api/hooks'
 import Loading from '../../components/Loading'
 import type { Order } from '../../types'
 
@@ -17,6 +18,7 @@ export default function Checkout() {
     neighborhood: '', city: '', state: '', zip_code: '', country: 'Argentina',
   })
   const [notes, setNotes] = useState('')
+  const [deliveryMethod, setDeliveryMethod] = useState<DeliveryMethod>('domicilio')
   const [error, setError] = useState('')
   const [isCheckingOut, setIsCheckingOut] = useState(false)
   const [createdOrder, setCreatedOrder] = useState<Order | null>(null)
@@ -26,16 +28,16 @@ export default function Checkout() {
   const items = cart?.items || []
   const subtotal = cart?.total || 0
 
-  const getSelectedProvince = () => {
+  const getSelectedZipCode = () => {
     if (selectedAddress !== 'new' && addresses) {
       const addr = addresses.find(a => a.id === selectedAddress)
-      if (addr) return addr.state
+      if (addr) return addr.zip_code || ''
     }
-    return form.state
+    return form.zip_code
   }
 
-  const province = getSelectedProvince()
-  const { data: shippingResult } = useCalculateShipping(province, subtotal)
+  const zipCode = getSelectedZipCode()
+  const { data: shippingResult } = useCalculateShipping(zipCode, subtotal, deliveryMethod)
   const shippingCost = shippingResult?.cost ?? 0
   const freeShipping = shippingResult?.free_shipping ?? false
   const total = subtotal + shippingCost
@@ -63,7 +65,7 @@ export default function Checkout() {
     let orderWasCreated = false
     try {
       const shipping_address = getAddressData()
-      const { data: order } = await createOrder.mutateAsync({ shipping_address, notes, shipping_cost: shippingCost })
+      const { data: order } = await createOrder.mutateAsync({ shipping_address, notes, shipping_cost: shippingCost, delivery_method: deliveryMethod })
       orderWasCreated = true
       setCreatedOrder(order)
 
@@ -171,7 +173,7 @@ export default function Checkout() {
                   <input placeholder="Provincia" required value={form.state}
                     onChange={e => setForm({ ...form, state: e.target.value })}
                     className="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2" style={{ borderColor: '#d1d5db' }} />
-                  <input placeholder="Código Postal" value={form.zip_code}
+                  <input placeholder="Código Postal" required value={form.zip_code}
                     onChange={e => setForm({ ...form, zip_code: e.target.value })}
                     className="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2" style={{ borderColor: '#d1d5db' }} />
                   <input placeholder="País" value={form.country}
@@ -179,6 +181,38 @@ export default function Checkout() {
                     className="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2" style={{ borderColor: '#d1d5db' }} />
                 </div>
               )}
+            </div>
+
+            <div className="p-6 rounded-xl border border-gray-100 shadow-sm">
+              <h2 className="text-lg font-semibold mb-4">Método de Envío</h2>
+              <div className="space-y-2">
+                <label className="flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:bg-gray-50">
+                  <input
+                    type="radio"
+                    name="deliveryMethod"
+                    value="domicilio"
+                    checked={deliveryMethod === 'domicilio'}
+                    onChange={() => setDeliveryMethod('domicilio')}
+                  />
+                  <div>
+                    <p className="font-medium">Envío a domicilio</p>
+                    <p className="text-sm text-gray-500">OCA entrega en la dirección que indiques</p>
+                  </div>
+                </label>
+                <label className="flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:bg-gray-50">
+                  <input
+                    type="radio"
+                    name="deliveryMethod"
+                    value="sucursal"
+                    checked={deliveryMethod === 'sucursal'}
+                    onChange={() => setDeliveryMethod('sucursal')}
+                  />
+                  <div>
+                    <p className="font-medium">Retiro en sucursal OCA</p>
+                    <p className="text-sm text-gray-500">Retirás el pedido en la sucursal de OCA más cercana al código postal indicado</p>
+                  </div>
+                </label>
+              </div>
             </div>
 
             <div className="p-6 rounded-xl border border-gray-100 shadow-sm">
@@ -214,7 +248,7 @@ export default function Checkout() {
                   <span className="font-medium">${subtotal.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Envío{province ? ` (${province})` : ''}</span>
+                  <span className="text-gray-600">Envío</span>
                   {freeShipping ? (
                     <span className="font-medium text-green-600">Gratis</span>
                   ) : (

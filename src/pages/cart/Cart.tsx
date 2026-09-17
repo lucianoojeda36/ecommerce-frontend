@@ -1,5 +1,7 @@
+import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { useCart, useUpdateCartItem, useRemoveCartItem, useClearCart } from '../../api/hooks'
+import { useCart, useUpdateCartItem, useRemoveCartItem, useClearCart, useCalculateShipping } from '../../api/hooks'
+import type { DeliveryMethod } from '../../api/hooks'
 import Loading from '../../components/Loading'
 
 export default function Cart() {
@@ -9,10 +11,17 @@ export default function Cart() {
   const clearCart = useClearCart()
   const navigate = useNavigate()
 
+  const [zipCode, setZipCode] = useState('')
+  const [deliveryMethod, setDeliveryMethod] = useState<DeliveryMethod>('domicilio')
+
+  const total = data?.total || 0
+  const { data: shippingResult, isFetching: isCalculatingShipping } = useCalculateShipping(zipCode, total, deliveryMethod)
+  const shippingCost = shippingResult?.cost ?? 0
+  const freeShipping = shippingResult?.free_shipping ?? false
+
   if (isLoading) return <Loading />
 
   const items = data?.items || []
-  const total = data?.total || 0
 
   if (items.length === 0) {
     return (
@@ -93,10 +102,53 @@ export default function Cart() {
       </div>
 
       <div className="mt-8 p-6 rounded-xl border border-gray-100 shadow-sm">
+        <h2 className="font-semibold mb-3">Calculá tu envío</h2>
+        <div className="flex gap-3 mb-3">
+          <input
+            placeholder="Código Postal"
+            value={zipCode}
+            onChange={e => setZipCode(e.target.value)}
+            className="flex-1 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2" style={{ borderColor: '#d1d5db' }}
+          />
+        </div>
+        <div className="flex gap-4 mb-4 text-sm">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="radio"
+              name="cartDeliveryMethod"
+              checked={deliveryMethod === 'domicilio'}
+              onChange={() => setDeliveryMethod('domicilio')}
+            />
+            Envío a domicilio
+          </label>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="radio"
+              name="cartDeliveryMethod"
+              checked={deliveryMethod === 'sucursal'}
+              onChange={() => setDeliveryMethod('sucursal')}
+            />
+            Retiro en sucursal
+          </label>
+        </div>
+
+        {zipCode && (
+          <div className="flex justify-between text-sm mb-4 pb-4 border-b">
+            <span className="text-gray-600">Envío estimado</span>
+            {isCalculatingShipping ? (
+              <span className="text-gray-400">Calculando...</span>
+            ) : freeShipping ? (
+              <span className="font-medium text-green-600">Gratis</span>
+            ) : (
+              <span className="font-medium">${shippingCost.toLocaleString()}</span>
+            )}
+          </div>
+        )}
+
         <div className="flex items-center justify-between mb-4">
-          <span className="text-lg font-semibold">Total</span>
+          <span className="text-lg font-semibold">{zipCode ? 'Total estimado' : 'Total'}</span>
           <span className="text-2xl font-bold" style={{ color: 'var(--color-primary)' }}>
-            ${total.toLocaleString()}
+            ${(total + (zipCode ? shippingCost : 0)).toLocaleString()}
           </span>
         </div>
         <button

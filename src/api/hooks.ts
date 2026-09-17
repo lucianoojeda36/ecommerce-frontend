@@ -1,6 +1,16 @@
+import { useEffect, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from './client'
 import type { Product, Category, CartItem, Order, Address, StoreSettings, PaymentPreference, DashboardStats, PaginatedResponse, ShippingConfig, OrderMessage } from '../types'
+
+function useDebouncedValue<T>(value: T, delayMs: number): T {
+  const [debounced, setDebounced] = useState(value)
+  useEffect(() => {
+    const timer = setTimeout(() => setDebounced(value), delayMs)
+    return () => clearTimeout(timer)
+  }, [value, delayMs])
+  return debounced
+}
 
 // ─── Products ───
 export function useProducts(params?: { page?: number; category?: string; search?: string }) {
@@ -152,7 +162,7 @@ export function useOrder(id: string) {
 export function useCreateOrder() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (data: { shipping_address: Address; notes?: string; shipping_cost?: number }) =>
+    mutationFn: (data: { shipping_address: Address; notes?: string; shipping_cost?: number; delivery_method?: DeliveryMethod }) =>
       api.post('/orders', data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['orders'] })
@@ -271,11 +281,16 @@ export function useDeleteAddress() {
 }
 
 // ─── Shipping ───
-export function useCalculateShipping(province: string, cartTotal: number) {
+export type DeliveryMethod = 'domicilio' | 'sucursal'
+
+export function useCalculateShipping(zipCode: string, cartTotal: number, deliveryMethod: DeliveryMethod = 'domicilio') {
+  const debouncedZipCode = useDebouncedValue(zipCode, 500)
   return useQuery({
-    queryKey: ['shipping', province, cartTotal],
-    queryFn: () => api.post<{ cost: number; free_shipping: boolean }>('/shipping/calculate', { province, cart_total: cartTotal }).then(r => r.data),
-    enabled: !!province,
+    queryKey: ['shipping', debouncedZipCode, cartTotal, deliveryMethod],
+    queryFn: () => api.post<{ cost: number; free_shipping: boolean }>('/shipping/calculate', {
+      zip_code: debouncedZipCode, cart_total: cartTotal, delivery_method: deliveryMethod,
+    }).then(r => r.data),
+    enabled: !!debouncedZipCode && debouncedZipCode.length >= 4,
   })
 }
 

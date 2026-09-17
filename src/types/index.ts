@@ -27,6 +27,7 @@ export interface Product {
   stock: number
   images: string[]
   is_active: boolean
+  weight_kg?: number
   created_at: string
 }
 
@@ -57,6 +58,7 @@ export interface Order {
   total: number
   shipping_address: Address
   shipping_cost: number
+  delivery_method?: 'domicilio' | 'sucursal'
   payment_id?: string
   notes?: string
   created_at: string
@@ -110,6 +112,12 @@ export interface ShippingConfig {
   free_shipping_threshold: number
 }
 
+export interface ShippingPackageDimensions {
+  largo: number
+  ancho: number
+  alto: number
+}
+
 export interface StoreSettings {
   id: string
   store_name: string
@@ -129,6 +137,9 @@ export interface StoreSettings {
   font_family?: string
   theme?: 'light' | 'dark'
   shipping_config?: ShippingConfig
+  shipping_origin_postal_code?: string
+  shipping_package_dimensions?: ShippingPackageDimensions
+  shipping_default_weight_kg?: number
 }
 
 export interface PaymentPreference {

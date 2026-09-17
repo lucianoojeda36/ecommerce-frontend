@@ -4,7 +4,6 @@ import { useStoreSettings, useUpdateSettings } from '../../api/hooks'
 import Loading from '../../components/Loading'
 import Modal from '../../components/Modal'
 import { useTheme } from '../../context/ThemeContext'
-import type { ShippingRate } from '../../types'
 
 const FONTS = ['Inter', 'Roboto', 'Open Sans', 'Lato', 'Montserrat', 'Poppins', 'Nunito', 'Raleway', 'Work Sans', 'DM Sans']
 
@@ -21,15 +20,20 @@ export default function AdminSettings() {
     seo_title: '', seo_description: '', currency: 'ARS',
     social_links: {} as Record<string, string>,
     font_family: 'Inter',
-    shipping_rates: [] as ShippingRate[],
     shipping_default_rate: 0,
     free_shipping_threshold: 0,
+    shipping_origin_postal_code: '',
+    shipping_package_largo: 30,
+    shipping_package_ancho: 20,
+    shipping_package_alto: 15,
+    shipping_default_weight_kg: 0.5,
   })
   const [showConfirmModal, setShowConfirmModal] = useState(false)
 
   useEffect(() => {
     if (settings) {
-      const sc = (settings as any).shipping_config || {}
+      const sc = settings.shipping_config || { rates: [], default_rate: 0, free_shipping_threshold: 0 }
+      const dims = settings.shipping_package_dimensions || { largo: 30, ancho: 20, alto: 15 }
       setForm({
         store_name: settings.store_name || '',
         store_description: settings.store_description || '',
@@ -46,9 +50,13 @@ export default function AdminSettings() {
         currency: settings.currency || 'ARS',
         social_links: settings.social_links || {},
         font_family: (settings as any).font_family || 'Inter',
-        shipping_rates: sc.rates || [],
         shipping_default_rate: sc.default_rate || 0,
         free_shipping_threshold: sc.free_shipping_threshold || 0,
+        shipping_origin_postal_code: settings.shipping_origin_postal_code || '',
+        shipping_package_largo: dims.largo ?? 30,
+        shipping_package_ancho: dims.ancho ?? 20,
+        shipping_package_alto: dims.alto ?? 15,
+        shipping_default_weight_kg: settings.shipping_default_weight_kg ?? 0.5,
       })
     }
   }, [settings])
@@ -61,18 +69,30 @@ export default function AdminSettings() {
   }
 
   const handleConfirmSave = () => {
-    const { shipping_rates, shipping_default_rate, free_shipping_threshold, ...rest } = form
+    const {
+      shipping_default_rate, free_shipping_threshold,
+      shipping_origin_postal_code, shipping_package_largo, shipping_package_ancho, shipping_package_alto,
+      shipping_default_weight_kg, ...rest
+    } = form
     updateSettings.mutate({
       ...rest,
       shipping_config: {
-        rates: shipping_rates,
+        rates: [],
         default_rate: shipping_default_rate,
         free_shipping_threshold,
       },
+      shipping_origin_postal_code,
+      shipping_package_dimensions: {
+        largo: shipping_package_largo,
+        ancho: shipping_package_ancho,
+        alto: shipping_package_alto,
+      },
+      shipping_default_weight_kg,
     }, {
       onSuccess: (response) => {
         const data = (response as any).data || response
         queryClient.setQueryData(['store-settings'], data)
+        const dims = data.shipping_package_dimensions || { largo: 30, ancho: 20, alto: 15 }
         setForm(prev => ({
           store_name: data.store_name ?? prev.store_name,
           store_description: data.store_description ?? prev.store_description,
@@ -89,9 +109,13 @@ export default function AdminSettings() {
           currency: data.currency ?? prev.currency,
           social_links: data.social_links ?? prev.social_links,
           font_family: (data as any).font_family ?? prev.font_family,
-          shipping_rates: (data as any).shipping_config?.rates ?? prev.shipping_rates,
-          shipping_default_rate: (data as any).shipping_config?.default_rate ?? prev.shipping_default_rate,
-          free_shipping_threshold: (data as any).shipping_config?.free_shipping_threshold ?? prev.free_shipping_threshold,
+          shipping_default_rate: data.shipping_config?.default_rate ?? prev.shipping_default_rate,
+          free_shipping_threshold: data.shipping_config?.free_shipping_threshold ?? prev.free_shipping_threshold,
+          shipping_origin_postal_code: data.shipping_origin_postal_code ?? prev.shipping_origin_postal_code,
+          shipping_package_largo: dims.largo ?? prev.shipping_package_largo,
+          shipping_package_ancho: dims.ancho ?? prev.shipping_package_ancho,
+          shipping_package_alto: dims.alto ?? prev.shipping_package_alto,
+          shipping_default_weight_kg: data.shipping_default_weight_kg ?? prev.shipping_default_weight_kg,
         }))
         setShowConfirmModal(false)
       },
@@ -249,15 +273,39 @@ export default function AdminSettings() {
             <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0H6.375a1.125 1.125 0 01-1.125-1.125V14.25m0 0h13.5m-13.5 0V5.625A1.125 1.125 0 016.375 4.5h8.25a1.125 1.125 0 011.125 1.125v3.75" />
             </svg>
-            Envío
+            Envío (OCA e-Pak)
           </h3>
+          <p className="text-sm text-gray-500">El costo se cotiza en tiempo real con OCA según el código postal de destino y el peso del pedido.</p>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Código postal de origen (depósito)</label>
+            <input placeholder="Ej: 1424" value={form.shipping_origin_postal_code}
+              onChange={e => setForm({ ...form, shipping_origin_postal_code: e.target.value })}
+              className="w-full px-4 py-2 border rounded-lg focus:outline-none" style={{ borderColor: '#d1d5db' }} />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Dimensiones del paquete estándar (cm)</label>
+            <div className="grid grid-cols-3 gap-4">
+              <input type="number" min="0" placeholder="Largo" value={form.shipping_package_largo}
+                onChange={e => setForm({ ...form, shipping_package_largo: Number(e.target.value) })}
+                className="w-full px-4 py-2 border rounded-lg focus:outline-none" style={{ borderColor: '#d1d5db' }} />
+              <input type="number" min="0" placeholder="Ancho" value={form.shipping_package_ancho}
+                onChange={e => setForm({ ...form, shipping_package_ancho: Number(e.target.value) })}
+                className="w-full px-4 py-2 border rounded-lg focus:outline-none" style={{ borderColor: '#d1d5db' }} />
+              <input type="number" min="0" placeholder="Alto" value={form.shipping_package_alto}
+                onChange={e => setForm({ ...form, shipping_package_alto: Number(e.target.value) })}
+                className="w-full px-4 py-2 border rounded-lg focus:outline-none" style={{ borderColor: '#d1d5db' }} />
+            </div>
+          </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Tarifa por defecto (resto del país)</label>
-              <input type="number" min="0" value={form.shipping_default_rate}
-                onChange={e => setForm({ ...form, shipping_default_rate: Number(e.target.value) })}
+              <label className="block text-sm font-medium text-gray-700 mb-1">Peso por defecto (kg)</label>
+              <input type="number" step="0.001" min="0" value={form.shipping_default_weight_kg}
+                onChange={e => setForm({ ...form, shipping_default_weight_kg: Number(e.target.value) })}
                 className="w-full px-4 py-2 border rounded-lg focus:outline-none" style={{ borderColor: '#d1d5db' }} />
+              <p className="text-xs text-gray-400 mt-1">Se usa en los productos que no tienen peso propio cargado</p>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Envío gratis a partir de ($)</label>
@@ -269,47 +317,10 @@ export default function AdminSettings() {
           </div>
 
           <div>
-            <div className="flex items-center justify-between mb-2">
-              <label className="text-sm font-medium text-gray-700">Tarifas por provincia</label>
-              <button type="button" onClick={() => setForm({
-                ...form,
-                shipping_rates: [...form.shipping_rates, { province: '', cost: 0 }],
-              })}
-                className="text-sm px-3 py-1 rounded-lg text-white transition hover:opacity-90"
-                style={{ backgroundColor: 'var(--color-primary)' }}>
-                + Agregar
-              </button>
-            </div>
-            <div className="space-y-2">
-              {form.shipping_rates.map((rate, i) => (
-                <div key={i} className="flex gap-2 items-center">
-                  <input placeholder="Provincia" value={rate.province}
-                    onChange={e => {
-                      const rates = [...form.shipping_rates]
-                      rates[i] = { ...rates[i], province: e.target.value }
-                      setForm({ ...form, shipping_rates: rates })
-                    }}
-                    className="flex-1 px-4 py-2 border rounded-lg focus:outline-none" style={{ borderColor: '#d1d5db' }} />
-                  <input type="number" min="0" placeholder="Costo" value={rate.cost || ''}
-                    onChange={e => {
-                      const rates = [...form.shipping_rates]
-                      rates[i] = { ...rates[i], cost: Number(e.target.value) }
-                      setForm({ ...form, shipping_rates: rates })
-                    }}
-                    className="w-32 px-4 py-2 border rounded-lg focus:outline-none" style={{ borderColor: '#d1d5db' }} />
-                  <button type="button" onClick={() => setForm({
-                    ...form,
-                    shipping_rates: form.shipping_rates.filter((_, j) => j !== i),
-                  })}
-                    className="text-red-400 hover:text-red-600 transition p-2">
-                    ✕
-                  </button>
-                </div>
-              ))}
-              {form.shipping_rates.length === 0 && (
-                <p className="text-sm text-gray-400">No hay tarifas configuradas. Se usará la tarifa por defecto.</p>
-              )}
-            </div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Tarifa de respaldo (si OCA no responde)</label>
+            <input type="number" min="0" value={form.shipping_default_rate}
+              onChange={e => setForm({ ...form, shipping_default_rate: Number(e.target.value) })}
+              className="w-full px-4 py-2 border rounded-lg focus:outline-none" style={{ borderColor: '#d1d5db' }} />
           </div>
         </div>
 
