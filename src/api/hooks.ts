@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from './client'
-import type { Product, Category, CartItem, Order, Address, StoreSettings, PaymentPreference, DashboardStats, PaginatedResponse, ShippingConfig, OrderMessage } from '../types'
+import type { Product, Category, CartItem, Order, Address, StoreSettings, PaymentPreference, DashboardStats, PaginatedResponse, OrderMessage } from '../types'
 
 function useDebouncedValue<T>(value: T, delayMs: number): T {
   const [debounced, setDebounced] = useState(value)

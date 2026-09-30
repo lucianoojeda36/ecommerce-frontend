@@ -82,6 +82,7 @@ export interface OrderMessage {
   order_id: string
   sender_id: string
   sender_role: 'customer' | 'admin'
+  sender_name?: string
   content: string
   created_at: string
   read: boolean

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { useCart, useCreateOrder, useCreatePreference, useAddresses, useCalculateShipping, useStoreSettings } from '../../api/hooks'
+import { useCart, useCreateOrder, useCreatePreference, useAddresses, useCalculateShipping } from '../../api/hooks'
 import type { DeliveryMethod } from '../../api/hooks'
 import Loading from '../../components/Loading'
 import type { Order } from '../../types'
@@ -22,8 +22,6 @@ export default function Checkout() {
   const [error, setError] = useState('')
   const [isCheckingOut, setIsCheckingOut] = useState(false)
   const [createdOrder, setCreatedOrder] = useState<Order | null>(null)
-
-  const { data: settings } = useStoreSettings()
 
   const items = cart?.items || []
   const subtotal = cart?.total || 0
