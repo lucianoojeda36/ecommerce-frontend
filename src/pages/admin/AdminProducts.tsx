@@ -3,6 +3,7 @@ import { useProducts, useCreateProduct, useUpdateProduct, useDeleteProduct, useU
 import Loading from '../../components/Loading'
 import FileInput from '../../components/FileInput'
 import Modal from '../../components/Modal'
+import { useToast } from '../../components/Toast'
 
 export default function AdminProducts() {
   const { data, isLoading } = useProducts({ page: 1 })
@@ -13,6 +14,10 @@ export default function AdminProducts() {
   const uploadImages = useUploadImages()
   const createCategory = useCreateCategory()
   const uploadCategoryImage = useUploadCategoryImage()
+  const { showToast } = useToast()
+
+  const onUploadError = (error: any) =>
+    showToast(error?.response?.data?.error || 'No se pudo subir la imagen', 'error')
 
   const [editingId, setEditingId] = useState<string | null>(null)
   const [showNew, setShowNew] = useState(false)
@@ -55,15 +60,24 @@ export default function AdminProducts() {
 
     if (editingId) {
       updateProduct.mutate({ id: editingId, data }, {
-        onSuccess: () => { setEditingId(null); resetForm() },
+        onSuccess: () => {
+          if (uploadFiles.length === 0) { setEditingId(null); resetForm(); return }
+          // Si eligió imágenes, las subimos antes de cerrar el formulario
+          uploadImages.mutate({ id: editingId, files: uploadFiles }, {
+            onSuccess: () => { setEditingId(null); resetForm() },
+            onError: onUploadError,
+          })
+        },
       })
     } else {
       createProduct.mutate(data, {
         onSuccess: (res: any) => {
           const newId = res.data.id
           if (uploadFiles.length > 0) {
-            uploadImages.mutate({ id: newId, files: uploadFiles })
-            setUploadFiles([])
+            uploadImages.mutate({ id: newId, files: uploadFiles }, {
+              onSuccess: () => setUploadFiles([]),
+              onError: onUploadError,
+            })
           }
           setEditingId(newId)
         },
@@ -73,7 +87,7 @@ export default function AdminProducts() {
 
   const handleUpload = (productId: string) => {
     if (uploadFiles.length === 0) return
-    uploadImages.mutate({ id: productId, files: uploadFiles }, { onSuccess: () => setUploadFiles([]) })
+    uploadImages.mutate({ id: productId, files: uploadFiles }, { onSuccess: () => setUploadFiles([]), onError: onUploadError })
   }
 
   const handleNewCategory = (e: React.FormEvent) => {
@@ -81,7 +95,7 @@ export default function AdminProducts() {
     createCategory.mutate({ name: newCatName }, {
       onSuccess: (res: any) => {
         if (categoryImage) {
-          uploadCategoryImage.mutate({ id: res.data.id, file: categoryImage })
+          uploadCategoryImage.mutate({ id: res.data.id, file: categoryImage }, { onError: onUploadError })
           setCategoryImage(null)
         }
         setShowNewCat(false)
