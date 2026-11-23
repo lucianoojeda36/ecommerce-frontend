@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAdminOrders, useUpdateOrderStatus, useUnreadByOrder } from '../../api/hooks'
-import Loading from '../../components/Loading'
+import { OrderListSkeleton } from '../../components/Skeleton'
+import { STATUS_LABEL } from './dashboard/format'
 
-const statuses = ['pending', 'confirmed', 'preparing', 'shipped', 'delivered', 'cancelled']
+const statuses = ['pending', 'confirmed', 'preparing', 'shipped', 'delivered', 'cancelled'] as const
 
 export default function AdminOrders() {
   const [page, setPage] = useState(1)
@@ -17,62 +18,78 @@ export default function AdminOrders() {
     return found ? parseInt(found.count) : 0
   }
 
-  if (isLoading) return <Loading />
+  if (isLoading) {
+    return (
+      <div className="ds-enter">
+        <h1 className="text-[22px] font-semibold tracking-[-0.03em] sm:text-[26px]" style={{ color: 'var(--a-text)' }}>Órdenes</h1>
+        <div className="mt-6"><OrderListSkeleton count={5} /></div>
+      </div>
+    )
+  }
 
   return (
-    <div>
-      <h2 className="text-xl font-bold mb-6">Órdenes</h2>
+    <div className="ds-enter space-y-5">
+      <div>
+        <h1 className="text-[22px] font-semibold tracking-[-0.03em] sm:text-[26px]" style={{ color: 'var(--a-text)' }}>Órdenes</h1>
+        <p className="mt-1 text-[13px]" style={{ color: 'var(--a-text-2)' }}>
+          Gestioná el estado y la comunicación con tus clientes.
+        </p>
+      </div>
 
-      <div className="space-y-4">
+      <div className="space-y-2.5">
         {data?.orders?.map((order) => {
           const unread = getUnreadCount(order.id)
           return (
-            <div key={order.id}
+            <div
+              key={order.id}
+              role="button"
+              tabIndex={0}
               onClick={() => navigate(`/admin/orders/${order.id}`)}
-              className={`p-5 rounded-xl shadow-sm cursor-pointer transition-all hover:shadow-lg ${
-                unread > 0
-                  ? 'border-2 border-amber-400 bg-amber-50/70'
-                  : 'border border-gray-100 hover:border-gray-200'
-              }`}>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate(`/admin/orders/${order.id}`) } }}
+              className="ds-panel flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:gap-4 sm:p-5"
+              style={unread > 0 ? { borderLeft: '2px solid var(--a-warning)' } : undefined}
+            >
+              <div className="flex min-w-0 flex-1 items-start gap-3">
+                <span className="num mt-0.5 text-[12px] font-medium" style={{ color: 'var(--a-accent)' }}>
+                  #{order.id.substring(0, 8)}
+                </span>
+                <div className="min-w-0">
+                  <p className="truncate text-[13px] font-medium" style={{ color: 'var(--a-text)' }}>
+                    {order.user_name || 'Cliente'}
+                  </p>
+                  <p className="truncate text-[12px]" style={{ color: 'var(--a-text-3)' }}>{order.user_email}</p>
                   {unread > 0 && (
-                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500 text-white">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
+                    <span className="ds-badge mt-2" style={{ background: 'var(--a-espera-soft)', color: 'var(--a-warning)' }}>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden>
+                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0" />
                       </svg>
-                      <span className="text-xs font-bold">{unread} {unread === 1 ? 'mensaje' : 'mensajes'}</span>
-                    </div>
+                      {unread} {unread === 1 ? 'mensaje' : 'mensajes'}
+                    </span>
                   )}
-                  <div>
-                    <p className="font-semibold">#{order.id.substring(0, 8)}</p>
-                    <p className="text-sm text-gray-500">{order.user_name} · {order.user_email}</p>
-                  </div>
                 </div>
+              </div>
 
-                <div className="flex items-center gap-4">
-                  <div className="text-right">
-                    <p className="text-lg font-bold" style={{ color: 'var(--color-primary)' }}>
-                      ${Number(order.total).toLocaleString()}
-                    </p>
-                    <p className="text-xs text-gray-400">
-                      {new Date(order.created_at).toLocaleDateString('es-AR')}
-                    </p>
-                  </div>
-                  <div onClick={e => e.stopPropagation()}>
-                    <select
-                      value={order.status}
-                      onChange={(e) => updateStatus.mutate({ id: order.id, status: e.target.value })}
-                      className="px-3 py-1 border rounded-lg text-sm focus:outline-none"
-                      style={{ borderColor: '#d1d5db' }}
-                    >
-                      {statuses.map((s) => (
-                        <option key={s} value={s}>
-                          {s === 'pending' ? 'Pendiente' : s === 'confirmed' ? 'Confirmado' : s === 'preparing' ? 'Preparando' : s === 'shipped' ? 'Enviado' : s === 'delivered' ? 'Entregado' : 'Cancelado'}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+              <div className="flex items-center justify-between gap-4 sm:justify-end">
+                <div className="text-right">
+                  <p className="num text-[15px] font-semibold" style={{ color: 'var(--a-text)' }}>
+                    ${Number(order.total).toLocaleString('es-AR')}
+                  </p>
+                  <p className="text-[11px]" style={{ color: 'var(--a-text-3)' }}>
+                    {new Date(order.created_at).toLocaleDateString('es-AR')}
+                  </p>
+                </div>
+                <div onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
+                  <select
+                    value={order.status}
+                    onChange={(e) => updateStatus.mutate({ id: order.id, status: e.target.value })}
+                    aria-label={`Estado de la orden #${order.id.substring(0, 8)}`}
+                    className="h-8 rounded-md border px-2 text-[12px] outline-none transition-colors focus:border-[var(--a-accent)]"
+                    style={{ background: 'var(--a-surface-2)', borderColor: 'var(--a-border)', color: 'var(--a-text)' }}
+                  >
+                    {statuses.map((s) => (
+                      <option key={s} value={s}>{STATUS_LABEL[s] ?? s}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
             </div>
@@ -81,15 +98,22 @@ export default function AdminOrders() {
       </div>
 
       {data && data.total > data.limit && (
-        <div className="flex justify-center gap-2 mt-8">
+        <nav aria-label="Paginación" className="flex justify-center gap-1.5 pt-2">
           {Array.from({ length: Math.ceil(data.total / data.limit) }, (_, i) => i + 1).map((p) => (
-            <button key={p} onClick={() => setPage(p)}
-              className={`px-4 py-2 rounded-lg text-sm ${p === page ? 'text-white' : 'text-gray-600 border'}`}
-              style={p === page ? { backgroundColor: 'var(--color-primary)' } : {}}>
+            <button
+              key={p}
+              type="button"
+              onClick={() => setPage(p)}
+              aria-current={p === page ? 'page' : undefined}
+              className="ds-btn h-8 min-w-8 px-2"
+              style={p === page
+                ? { background: 'var(--a-text)', color: 'var(--a-surface)', border: '1px solid var(--a-text)' }
+                : { background: 'var(--a-surface)', color: 'var(--a-text-2)', border: '1px solid var(--a-border)' }}
+            >
               {p}
             </button>
           ))}
-        </div>
+        </nav>
       )}
     </div>
   )

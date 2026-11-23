@@ -23,7 +23,7 @@ export default function AdminOrderDetail() {
   }, [id])
 
   if (isLoading) return <Loading />
-  if (!order) return <p className="text-center py-12 text-gray-500">Orden no encontrada</p>
+  if (!order) return <p className="py-12 text-center text-[13px]" style={{ color: 'var(--a-text-2)' }}>Orden no encontrada</p>
 
   return (
     <div className="max-w-4xl">
@@ -38,17 +38,17 @@ export default function AdminOrderDetail() {
 
       <div className="flex items-start justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold">Orden #{order.id.substring(0, 8)}</h1>
-          <p className="text-sm text-gray-500 mt-1">
+          <h1 className="text-[20px] font-semibold tracking-[-0.03em]" style={{ color: 'var(--a-text)' }}>Orden <span className="num">#{order.id.substring(0, 8)}</span></h1>
+          <p className="mt-1 text-[12px]" style={{ color: 'var(--a-text-2)' }}>
             {order.user_name} · {order.user_email}
           </p>
-          <p className="text-xs text-gray-400 mt-1">
+          <p className="mt-1 text-[11px]" style={{ color: 'var(--a-text-3)' }}>
             {new Date(order.created_at).toLocaleDateString('es-AR', {
               day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit'
             })}
           </p>
         </div>
-        <p className="text-2xl font-bold" style={{ color: 'var(--color-primary)' }}>
+        <p className="figure text-[24px]" style={{ color: 'var(--a-text)' }}>
           ${Number(order.total).toLocaleString()}
         </p>
       </div>
@@ -73,58 +73,58 @@ export default function AdminOrderDetail() {
         <div className="space-y-3 mb-6">
           <h2 className="text-lg font-semibold">Productos</h2>
           {order.items.map((item) => (
-            <div key={item.id} className="flex items-center gap-4 p-4 rounded-xl border border-gray-100">
-              <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-100 shrink-0">
+            <div key={item.id} className="ds-panel flex items-center gap-4 p-4">
+              <div className="h-14 w-14 shrink-0 overflow-hidden rounded-md" style={{ background: 'var(--a-surface-2)' }}>
                 {item.images?.[0] ? (
                   <img src={item.images[0]} alt="" className="w-full h-full object-cover" />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">Sin img</div>
+                  <div className="flex h-full w-full items-center justify-center text-[10px]" style={{ color: 'var(--a-text-3)' }}>Sin img</div>
                 )}
               </div>
               <div className="flex-1">
                 <p className="font-semibold">{item.product_name}</p>
-                <p className="text-sm text-gray-500">Cant: {item.quantity} x ${Number(item.unit_price).toLocaleString()}</p>
+                <p className="text-[12px]" style={{ color: 'var(--a-text-2)' }}>Cant: {item.quantity} x ${Number(item.unit_price).toLocaleString()}</p>
               </div>
-              <p className="font-bold">${Number(item.subtotal).toLocaleString()}</p>
+              <p className="font-semibold">${Number(item.subtotal).toLocaleString()}</p>
             </div>
           ))}
         </div>
       )}
 
-      <div className="p-6 rounded-xl border border-gray-100 mb-6">
+      <div className="ds-panel mb-6 p-5 sm:p-6">
         <h2 className="text-lg font-semibold mb-4">Dirección de Envío</h2>
-        <p className="text-gray-600">
+        <p className="" style={{ color: 'var(--a-text-2)' }}>
           {order.shipping_address?.street} {order.shipping_address?.number}
           {order.shipping_address?.city && <>, {order.shipping_address.city}</>}
           {order.shipping_address?.state && <>, {order.shipping_address.state}</>}
         </p>
-        <p className="text-sm text-gray-500 mt-1">
+        <p className="mt-1 text-[12px]" style={{ color: 'var(--a-text-2)' }}>
           {order.delivery_method === 'sucursal' ? 'Retiro en sucursal OCA' : 'Envío a domicilio'}
         </p>
 
         {order.notes && (
-          <div className="mt-3 p-3 rounded-lg bg-gray-50">
-            <p className="text-sm font-medium text-gray-700">Notas del cliente:</p>
-            <p className="text-sm text-gray-600 mt-1">{order.notes}</p>
+          <div className="mt-3 rounded-md p-3" style={{ background: 'var(--a-surface-2)' }}>
+            <p className="text-[12px] font-medium" style={{ color: 'var(--a-text)' }}>Notas del cliente:</p>
+            <p className="mt-1 text-[12px]" style={{ color: 'var(--a-text-2)' }}>{order.notes}</p>
           </div>
         )}
 
         <div className="border-t mt-4 pt-4 space-y-2">
           {order.shipping_cost > 0 && (
             <div className="flex justify-between text-sm">
-              <span className="text-gray-600">Envío</span>
+              <span className="" style={{ color: 'var(--a-text-2)' }}>Envío</span>
               <span className="font-medium">${Number(order.shipping_cost).toLocaleString()}</span>
             </div>
           )}
           {order.shipping_cost === 0 && order.total > 0 && (
             <div className="flex justify-between text-sm">
-              <span className="text-gray-600">Envío</span>
+              <span className="" style={{ color: 'var(--a-text-2)' }}>Envío</span>
               <span className="font-medium text-green-600">Gratis</span>
             </div>
           )}
           <div className="flex justify-between items-center">
             <span className="font-semibold text-lg">Total</span>
-            <span className="text-2xl font-bold" style={{ color: 'var(--color-primary)' }}>
+            <span className="figure text-[24px]" style={{ color: 'var(--a-text)' }}>
               ${Number(order.total).toLocaleString()}
             </span>
           </div>

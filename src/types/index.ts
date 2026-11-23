@@ -167,4 +167,9 @@ export interface DashboardStats {
     pendingOrders: number
   }
   recentOrders: Order[]
+  // Campos nuevos: opcionales para tolerar un backend sin actualizar
+  revenueByDay?: { date: string; revenue: number; orders: number }[]
+  previousPeriodRevenue?: number
+  ordersByStatus?: Partial<Record<Order['status'], number>>
+  topProducts?: { name: string; units: number; revenue: number }[]
 }

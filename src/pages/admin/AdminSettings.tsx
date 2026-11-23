@@ -15,7 +15,7 @@ export default function AdminSettings() {
 
   const [form, setForm] = useState({
     store_name: '', store_description: '', store_logo: '', store_favicon: '',
-    primary_color: '#3B82F6', secondary_color: '#1E40AF',
+    primary_color: '#4F46E5', secondary_color: '#4338CA',
     about_us: '', contact_email: '', contact_phone: '', address: '',
     seo_title: '', seo_description: '', currency: 'ARS',
     social_links: {} as Record<string, string>,
@@ -39,8 +39,8 @@ export default function AdminSettings() {
         store_description: settings.store_description || '',
         store_logo: settings.store_logo || '',
         store_favicon: settings.store_favicon || '',
-        primary_color: settings.primary_color || '#3B82F6',
-        secondary_color: settings.secondary_color || '#1E40AF',
+        primary_color: settings.primary_color || '#4F46E5',
+        secondary_color: settings.secondary_color || '#4338CA',
         about_us: settings.about_us || '',
         contact_email: settings.contact_email || '',
         contact_phone: settings.contact_phone || '',
@@ -124,12 +124,12 @@ export default function AdminSettings() {
 
   return (
     <div className="space-y-6 max-w-3xl">
-      <h2 className="text-xl font-bold">Configuración Visual</h2>
+      <h1 className="text-[22px] font-semibold tracking-[-0.03em] sm:text-[26px]" style={{ color: 'var(--a-text)' }}>Configuración</h1>
 
       <form onSubmit={handleSubmit} className="space-y-6">
 
         {/* Theme toggle */}
-        <div className="p-6 rounded-xl shadow-sm space-y-4" style={{ backgroundColor: 'var(--color-bg-card)', border: '1px solid var(--color-border)' }}>
+        <div className="ds-panel space-y-4 p-5 sm:p-6">
           <h3 className="font-semibold flex items-center gap-2">
             <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M21.752 15.002A9.718 9.718 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z" />
@@ -138,14 +138,16 @@ export default function AdminSettings() {
           </h3>
           <div className="flex gap-3">
             <button type="button" onClick={() => theme === 'dark' && toggleTheme()}
-              className={`flex-1 p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-2 ${theme === 'light' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'}`}>
+              className={`flex-1 rounded-md border p-4 transition-colors duration-150 flex flex-col items-center gap-2 ${theme === 'light' ? '' : 'hover:border-[var(--a-border-strong)]'}`}
+              style={theme === 'light' ? { borderColor: 'var(--a-accent)', background: 'var(--a-accent-soft)' } : { borderColor: 'var(--a-border)' }}>
               <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-.386 6.364l-1.591-1.591M12 18.75V21m-4.773-4.227l-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z" />
               </svg>
               <span className="text-sm font-medium">Claro</span>
             </button>
             <button type="button" onClick={() => theme === 'light' && toggleTheme()}
-              className={`flex-1 p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-2 ${theme === 'dark' ? 'border-blue-500 bg-blue-900/30' : 'border-gray-200 hover:border-gray-300'}`}>
+              className="flex-1 rounded-md border p-4 transition-colors duration-150 hover:border-[var(--a-border-strong)] flex flex-col items-center gap-2"
+              style={theme === 'dark' ? { borderColor: 'var(--a-accent)', background: 'var(--a-accent-soft)' } : { borderColor: 'var(--a-border)' }}>
               <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M21.752 15.002A9.718 9.718 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z" />
               </svg>
@@ -155,7 +157,7 @@ export default function AdminSettings() {
         </div>
 
         {/* Colors & Font */}
-        <div className="p-6 rounded-xl shadow-sm space-y-4" style={{ backgroundColor: 'var(--color-bg-card)', border: '1px solid var(--color-border)' }}>
+        <div className="ds-panel space-y-4 p-5 sm:p-6">
           <h3 className="font-semibold flex items-center gap-2">
             <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M4.098 19.902a3.75 3.75 0 005.304 0l6.401-6.402M6.75 21A3.75 3.75 0 013 17.25V4.125C3 3.504 3.504 3 4.125 3h5.25c.621 0 1.125.504 1.125 1.125v4.072M6.75 21a3.75 3.75 0 003.75-3.75V8.197M6.75 21h13.125c.621 0 1.125-.504 1.125-1.125v-5.25c0-.621-.504-1.125-1.125-1.125h-4.072M10.5 8.197l2.88-2.88c.438-.439 1.15-.439 1.59 0l3.712 3.713c.44.44.44 1.152 0 1.59l-2.879 2.88M6.75 17.25h.008v.008H6.75v-.008z" />
@@ -165,7 +167,7 @@ export default function AdminSettings() {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Color Primario</label>
+              <label className="ds-eyebrow mb-1.5 block normal-case tracking-normal">Color Primario</label>
               <div className="flex gap-2">
                 <input type="color" value={form.primary_color}
                   onChange={e => setForm({ ...form, primary_color: e.target.value })}
@@ -176,7 +178,7 @@ export default function AdminSettings() {
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Color Secundario</label>
+              <label className="ds-eyebrow mb-1.5 block normal-case tracking-normal">Color Secundario</label>
               <div className="flex gap-2">
                 <input type="color" value={form.secondary_color}
                   onChange={e => setForm({ ...form, secondary_color: e.target.value })}
@@ -189,29 +191,29 @@ export default function AdminSettings() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Fuente</label>
+            <label className="ds-eyebrow mb-1.5 block normal-case tracking-normal">Fuente</label>
             <select value={form.font_family}
               onChange={e => setForm({ ...form, font_family: e.target.value })}
               className="w-full px-4 py-2 border rounded-lg focus:outline-none" style={{ borderColor: '#d1d5db' }}>
               {FONTS.map(f => <option key={f} value={f}>{f}</option>)}
             </select>
-            <p className="text-xs text-gray-400 mt-1">Vista previa: <span style={{ fontFamily: `'${form.font_family}'` }}>Texto de ejemplo — {form.font_family}</span></p>
+            <p className="mt-1 text-[11px]" style={{ color: 'var(--a-text-3)' }}>Vista previa: <span style={{ fontFamily: `'${form.font_family}'` }}>Texto de ejemplo — {form.font_family}</span></p>
           </div>
         </div>
 
         {/* General */}
-        <div className="p-6 rounded-xl shadow-sm space-y-4" style={{ backgroundColor: 'var(--color-bg-card)', border: '1px solid var(--color-border)' }}>
+        <div className="ds-panel space-y-4 p-5 sm:p-6">
           <h3 className="font-semibold">Información General</h3>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Nombre de la tienda</label>
+            <label className="ds-eyebrow mb-1.5 block normal-case tracking-normal">Nombre de la tienda</label>
             <input value={form.store_name}
               onChange={e => setForm({ ...form, store_name: e.target.value })}
               className="w-full px-4 py-2 border rounded-lg focus:outline-none" style={{ borderColor: '#d1d5db' }} />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Descripción</label>
+            <label className="ds-eyebrow mb-1.5 block normal-case tracking-normal">Descripción</label>
             <textarea value={form.store_description}
               onChange={e => setForm({ ...form, store_description: e.target.value })}
               rows={3}
@@ -220,13 +222,13 @@ export default function AdminSettings() {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">URL del Logo</label>
+              <label className="ds-eyebrow mb-1.5 block normal-case tracking-normal">URL del Logo</label>
               <input value={form.store_logo}
                 onChange={e => setForm({ ...form, store_logo: e.target.value })}
                 className="w-full px-4 py-2 border rounded-lg focus:outline-none" style={{ borderColor: '#d1d5db' }} />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">URL del Favicon</label>
+              <label className="ds-eyebrow mb-1.5 block normal-case tracking-normal">URL del Favicon</label>
               <input value={form.store_favicon}
                 onChange={e => setForm({ ...form, store_favicon: e.target.value })}
                 className="w-full px-4 py-2 border rounded-lg focus:outline-none" style={{ borderColor: '#d1d5db' }} />
@@ -234,7 +236,7 @@ export default function AdminSettings() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Moneda</label>
+            <label className="ds-eyebrow mb-1.5 block normal-case tracking-normal">Moneda</label>
             <select value={form.currency}
               onChange={e => setForm({ ...form, currency: e.target.value })}
               className="w-full px-4 py-2 border rounded-lg focus:outline-none" style={{ borderColor: '#d1d5db' }}>
@@ -246,7 +248,7 @@ export default function AdminSettings() {
         </div>
 
         {/* Contact */}
-        <div className="p-6 rounded-xl shadow-sm space-y-4" style={{ backgroundColor: 'var(--color-bg-card)', border: '1px solid var(--color-border)' }}>
+        <div className="ds-panel space-y-4 p-5 sm:p-6">
           <h3 className="font-semibold">Contacto</h3>
 
           <div className="grid grid-cols-2 gap-4">
@@ -268,24 +270,24 @@ export default function AdminSettings() {
         </div>
 
         {/* Shipping */}
-        <div className="p-6 rounded-xl shadow-sm space-y-4" style={{ backgroundColor: 'var(--color-bg-card)', border: '1px solid var(--color-border)' }}>
+        <div className="ds-panel space-y-4 p-5 sm:p-6">
           <h3 className="font-semibold flex items-center gap-2">
             <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0H6.375a1.125 1.125 0 01-1.125-1.125V14.25m0 0h13.5m-13.5 0V5.625A1.125 1.125 0 016.375 4.5h8.25a1.125 1.125 0 011.125 1.125v3.75" />
             </svg>
             Envío (OCA e-Pak)
           </h3>
-          <p className="text-sm text-gray-500">El costo se cotiza en tiempo real con OCA según el código postal de destino y el peso del pedido.</p>
+          <p className="text-[12px]" style={{ color: 'var(--a-text-2)' }}>El costo se cotiza en tiempo real con OCA según el código postal de destino y el peso del pedido.</p>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Código postal de origen (depósito)</label>
+            <label className="ds-eyebrow mb-1.5 block normal-case tracking-normal">Código postal de origen (depósito)</label>
             <input placeholder="Ej: 1424" value={form.shipping_origin_postal_code}
               onChange={e => setForm({ ...form, shipping_origin_postal_code: e.target.value })}
               className="w-full px-4 py-2 border rounded-lg focus:outline-none" style={{ borderColor: '#d1d5db' }} />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Dimensiones del paquete estándar (cm)</label>
+            <label className="ds-eyebrow mb-1.5 block normal-case tracking-normal">Dimensiones del paquete estándar (cm)</label>
             <div className="grid grid-cols-3 gap-4">
               <input type="number" min="0" placeholder="Largo" value={form.shipping_package_largo}
                 onChange={e => setForm({ ...form, shipping_package_largo: Number(e.target.value) })}
@@ -301,14 +303,14 @@ export default function AdminSettings() {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Peso por defecto (kg)</label>
+              <label className="ds-eyebrow mb-1.5 block normal-case tracking-normal">Peso por defecto (kg)</label>
               <input type="number" step="0.001" min="0" value={form.shipping_default_weight_kg}
                 onChange={e => setForm({ ...form, shipping_default_weight_kg: Number(e.target.value) })}
                 className="w-full px-4 py-2 border rounded-lg focus:outline-none" style={{ borderColor: '#d1d5db' }} />
-              <p className="text-xs text-gray-400 mt-1">Se usa en los productos que no tienen peso propio cargado</p>
+              <p className="mt-1 text-[11px]" style={{ color: 'var(--a-text-3)' }}>Se usa en los productos que no tienen peso propio cargado</p>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Envío gratis a partir de ($)</label>
+              <label className="ds-eyebrow mb-1.5 block normal-case tracking-normal">Envío gratis a partir de ($)</label>
               <input type="number" min="0" value={form.free_shipping_threshold}
                 onChange={e => setForm({ ...form, free_shipping_threshold: Number(e.target.value) })}
                 placeholder="0 = desactivado"
@@ -317,7 +319,7 @@ export default function AdminSettings() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Tarifa de respaldo (si OCA no responde)</label>
+            <label className="ds-eyebrow mb-1.5 block normal-case tracking-normal">Tarifa de respaldo (si OCA no responde)</label>
             <input type="number" min="0" value={form.shipping_default_rate}
               onChange={e => setForm({ ...form, shipping_default_rate: Number(e.target.value) })}
               className="w-full px-4 py-2 border rounded-lg focus:outline-none" style={{ borderColor: '#d1d5db' }} />
@@ -325,7 +327,7 @@ export default function AdminSettings() {
         </div>
 
         {/* SEO */}
-        <div className="p-6 rounded-xl shadow-sm space-y-4" style={{ backgroundColor: 'var(--color-bg-card)', border: '1px solid var(--color-border)' }}>
+        <div className="ds-panel space-y-4 p-5 sm:p-6">
           <h3 className="font-semibold">SEO</h3>
 
           <input value={form.seo_title} placeholder="Título SEO"

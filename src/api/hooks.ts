@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from './client'
 import type { Product, Category, CartItem, Order, Address, StoreSettings, PaymentPreference, DashboardStats, PaginatedResponse, OrderMessage } from '../types'
 
@@ -13,11 +13,15 @@ function useDebouncedValue<T>(value: T, delayMs: number): T {
 }
 
 // ─── Products ───
-export function useProducts(params?: { page?: number; category?: string; search?: string }) {
+export function useProducts(params?: { page?: number; category?: string; search?: string; on_sale?: string }) {
   return useQuery({
     queryKey: ['products', params],
     queryFn: () => api.get<PaginatedResponse<Product>>('/products', { params }).then(r => r.data),
   })
+}
+
+export function isOnSale(product: Product): boolean {
+  return !!product.compare_price && product.compare_price > product.price
 }
 
 export function useProduct(slug: string) {
@@ -343,5 +347,99 @@ export function useSendContactMessage() {
   return useMutation({
     mutationFn: (data: { name: string; email: string; subject: string; message: string }) =>
       api.post('/contact', data),
+  })
+}
+
+const FAVORITES_KEY = 'favorites'
+const FAVORITES_CACHE_KEY = 'favorites_cache'
+
+function readFavorites(): string[] {
+  try {
+    const raw = localStorage.getItem(FAVORITES_KEY)
+    const parsed = raw ? JSON.parse(raw) : []
+    return Array.isArray(parsed) ? parsed.filter((id): id is string => typeof id === 'string') : []
+  } catch {
+    return []
+  }
+}
+
+export function readFavoritesCache(): Record<string, Product> {
+  try {
+    const raw = localStorage.getItem(FAVORITES_CACHE_KEY)
+    const parsed = raw ? JSON.parse(raw) : {}
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {}
+  } catch {
+    return {}
+  }
+}
+
+function persistFavorites(ids: string[], cache: Record<string, Product>) {
+  localStorage.setItem(FAVORITES_KEY, JSON.stringify(ids))
+  localStorage.setItem(FAVORITES_CACHE_KEY, JSON.stringify(cache))
+}
+
+export function useFavorites() {
+  const token = localStorage.getItem('token')
+  return useQuery<string[]>({
+    queryKey: ['favorites'],
+    queryFn: async () => {
+      if (!token) return readFavorites()
+      try {
+        const r = await api.get<{ product_ids: string[] } | string[]>('/favorites')
+        const ids = Array.isArray(r.data) ? r.data : r.data?.product_ids || []
+        const safe = ids.filter((id): id is string => typeof id === 'string')
+        persistFavorites(safe, readFavoritesCache())
+        return safe
+      } catch {
+        return readFavorites()
+      }
+    },
+  })
+}
+
+export function useToggleFavorite() {
+  const qc = useQueryClient()
+  const token = localStorage.getItem('token')
+  return useMutation({
+    mutationFn: async ({ product, favorite }: { product: Product; favorite: boolean }) => {
+      const ids = readFavorites()
+      const next = favorite ? [...new Set([...ids, product.id])] : ids.filter(id => id !== product.id)
+      const cache = readFavoritesCache()
+      if (favorite) cache[product.id] = product
+      else delete cache[product.id]
+      persistFavorites(next, cache)
+      if (token) {
+        try {
+          if (favorite) await api.post('/favorites', { product_id: product.id })
+          else await api.delete(`/favorites/${product.id}`)
+        } catch {
+          return next
+        }
+      }
+      return next
+    },
+    onMutate: async ({ product, favorite }) => {
+      await qc.cancelQueries({ queryKey: ['favorites'] })
+      const previous = qc.getQueryData<string[]>(['favorites']) || []
+      const next = favorite ? [...new Set([...previous, product.id])] : previous.filter(id => id !== product.id)
+      qc.setQueryData<string[]>(['favorites'], next)
+      return { previous }
+    },
+    onError: (_error, _variables, context) => {
+      qc.setQueryData(['favorites'], context?.previous || [])
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: ['favorites'] }),
+  })
+}
+
+export function useFavoriteProducts(ids: string[]) {
+  return useQueries({
+    queries: ids.map(id => ({
+      queryKey: ['product', id],
+      queryFn: () => api.get<Product>(`/products/${id}`).then(r => r.data),
+      enabled: !!id,
+      retry: false,
+      staleTime: 5 * 60 * 1000,
+    })),
   })
 }

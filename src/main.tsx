@@ -6,6 +6,7 @@ import { AuthProvider } from './context/AuthContext'
 import { ThemeProvider } from './context/ThemeContext'
 import { ToastProvider } from './components/Toast'
 import { NotificationProvider } from './context/NotificationContext'
+import { FavoritesProvider } from './context/FavoritesContext'
 import App from './App'
 import './index.css'
 
@@ -23,13 +24,15 @@ createRoot(document.getElementById('root')!).render(
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <AuthProvider>
-          <ThemeProvider>
-            <ToastProvider>
-              <NotificationProvider>
-                <App />
-              </NotificationProvider>
-            </ToastProvider>
-          </ThemeProvider>
+          <FavoritesProvider>
+            <ThemeProvider>
+              <ToastProvider>
+                <NotificationProvider>
+                  <App />
+                </NotificationProvider>
+              </ToastProvider>
+            </ThemeProvider>
+          </FavoritesProvider>
         </AuthProvider>
       </BrowserRouter>
     </QueryClientProvider>

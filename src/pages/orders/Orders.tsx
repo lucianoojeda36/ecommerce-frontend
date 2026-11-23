@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import { useOrders, useUnreadByOrder } from '../../api/hooks'
-import Loading from '../../components/Loading'
+import { OrderListSkeleton } from '../../components/Skeleton'
 
 const statusColors: Record<string, string> = {
   pending: 'bg-yellow-100 text-yellow-800',
@@ -29,7 +29,14 @@ export default function Orders() {
     return found ? parseInt(found.count) : 0
   }
 
-  if (isLoading) return <Loading />
+  if (isLoading) {
+    return (
+      <div className="page-container">
+        <h1 className="text-2xl font-bold mb-6" style={{ color: 'var(--color-text)' }}>Mis Órdenes</h1>
+        <OrderListSkeleton count={4} />
+      </div>
+    )
+  }
 
   if (!data?.orders?.length) {
     return (
@@ -57,24 +64,24 @@ export default function Orders() {
             <Link
               key={order.id}
               to={`/orders/${order.id}`}
-              className={`block p-5 rounded-xl shadow-sm hover:shadow-lg transition-all ${
+              className={`flex items-center min-h-[80px] p-5 rounded-xl shadow-sm hover:shadow-lg transition-all ${
                 unread > 0
                   ? 'border-2 border-amber-400 bg-amber-50/70'
                   : 'border border-gray-100 hover:border-gray-200'
               }`}
             >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
+              <div className="w-full flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3 min-w-0">
                   {unread > 0 && (
-                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500 text-white">
+                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500 text-white shrink-0 whitespace-nowrap">
                       <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
                       </svg>
                       <span className="text-xs font-bold">{unread} {unread === 1 ? 'respuesta' : 'respuestas'}</span>
                     </div>
                   )}
-                  <div>
-                    <p className="text-sm text-gray-500">
+                  <div className="min-w-0">
+                    <p className="text-sm text-gray-500 truncate">
                       {new Date(order.created_at).toLocaleDateString('es-AR', {
                         day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit'
                       })}
@@ -83,11 +90,11 @@ export default function Orders() {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3">
-                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusColors[order.status] || ''}`}>
+                <div className="grid grid-cols-[auto_6rem] sm:grid-cols-[auto_7rem] items-center gap-3 shrink-0">
+                  <span className={`inline-flex h-6 w-24 items-center justify-center rounded-full text-xs font-semibold leading-none whitespace-nowrap ${statusColors[order.status] || ''}`}>
                     {statusLabels[order.status] || order.status}
                   </span>
-                  <span className="text-lg font-bold" style={{ color: 'var(--color-primary)' }}>
+                  <span className="flex h-6 items-center justify-end text-lg font-bold tabular-nums whitespace-nowrap" style={{ color: 'var(--color-primary)' }}>
                     ${Number(order.total).toLocaleString()}
                   </span>
                 </div>

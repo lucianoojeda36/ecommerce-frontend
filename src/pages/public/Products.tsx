@@ -1,42 +1,83 @@
-import { useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
-import { useProducts, useCategories } from '../../api/hooks'
-import Loading from '../../components/Loading'
+import { useCallback, useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
+import { isOnSale, useProducts, useCategories } from '../../api/hooks'
+import type { Product } from '../../types'
+import ProductCard from '../../components/ProductCard'
+import QuickViewModal from '../../components/QuickViewModal'
+import { CategoryListSkeleton, ProductGridSkeleton } from '../../components/Skeleton'
+
+function getPageNumbers(current: number, total: number): (number | '...')[] {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1)
+  const pages: (number | '...')[] = [1]
+  const start = Math.max(2, current - 1)
+  const end = Math.min(total - 1, current + 1)
+  if (start > 2) pages.push('...')
+  for (let i = start; i <= end; i++) pages.push(i)
+  if (end < total - 1) pages.push('...')
+  pages.push(total)
+  return pages
+}
 
 export default function Products() {
   const [searchParams, setSearchParams] = useSearchParams()
   const category = searchParams.get('category') || undefined
   const search = searchParams.get('search') || undefined
   const page = parseInt(searchParams.get('page') || '1')
+  const promo = searchParams.get('promo') === '1'
 
   const [searchInput, setSearchInput] = useState(search || '')
+  const [quickView, setQuickView] = useState<Product | null>(null)
+  const closeQuickView = useCallback(() => setQuickView(null), [])
 
-  const { data, isLoading } = useProducts({ page, category, search })
-  const { data: categories } = useCategories()
+  const { data, isLoading, isFetching } = useProducts({ page, category, search, on_sale: promo ? 'true' : undefined })
+  const { data: categories, isLoading: categoriesLoading } = useCategories()
 
-  if (isLoading) return <Loading />
+  const visibleProducts = (data?.products || []).filter(product => !promo || isOnSale(product))
+  const visibleTotal = promo ? visibleProducts.length : data?.total || 0
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault()
-    const params = new URLSearchParams()
-    if (searchInput) params.set('search', searchInput)
-    if (category) params.set('category', category)
-    params.set('page', '1')
+  useEffect(() => {
+    setSearchInput(search || '')
+  }, [search])
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if ((searchInput || '') === (search || '')) return
+      const params = new URLSearchParams(searchParams)
+      if (searchInput) params.set('search', searchInput)
+      else params.delete('search')
+      params.set('page', '1')
+      setSearchParams(params, { replace: true })
+    }, 450)
+    return () => clearTimeout(timer)
+  }, [searchInput, search, searchParams, setSearchParams])
+
+  const updateParams = (updates: Record<string, string | undefined>) => {
+    const params = new URLSearchParams(searchParams)
+    Object.entries(updates).forEach(([key, value]) => {
+      if (value) params.set(key, value)
+      else params.delete(key)
+    })
     setSearchParams(params)
   }
 
   const setFilter = (key: string, value: string | undefined) => {
-    const params = new URLSearchParams(searchParams)
-    if (value) params.set(key, value)
-    else params.delete(key)
-    params.set('page', '1')
-    setSearchParams(params)
+    updateParams({ [key]: value, page: '1' })
   }
 
-  const totalPages = data ? Math.ceil(data.total / data.limit) : 1
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault()
+    setFilter('search', searchInput || undefined)
+  }
+
+  const totalPages = promo || !data ? 1 : Math.max(1, Math.ceil(data.total / data.limit))
 
   return (
-    <div>
+    <div className="page-container">
+      <div className="mb-6">
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight" style={{ color: 'var(--color-text)' }}>Productos</h1>
+        <p className="text-sm mt-1" style={{ color: 'var(--color-text-muted)' }}>Explorá todo nuestro catálogo</p>
+      </div>
+
       {/* Search */}
       <form onSubmit={handleSearch} className="mb-6">
         <div className="flex gap-2">
@@ -45,122 +86,160 @@ export default function Products() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
             </svg>
             <input type="text" value={searchInput} onChange={e => setSearchInput(e.target.value)}
-              placeholder="Buscar productos..." className="w-full !pl-10" />
+              placeholder="Buscar productos..." aria-label="Buscar productos" className="w-full !pl-10 !pr-10" />
+            {searchInput && (
+              <button type="button" onClick={() => setSearchInput('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold"
+                style={{ color: 'var(--color-text-muted)' }} aria-label="Limpiar búsqueda">
+                ✕
+              </button>
+            )}
           </div>
-          <button type="submit" className="px-6 py-2.5 rounded-lg text-white text-sm font-semibold transition-all hover:opacity-90 hover:shadow-md"
+          <button type="submit" className="px-6 py-2.5 rounded-lg text-white text-sm font-semibold transition-all hover:opacity-90 hover:shadow-md active:scale-95"
             style={{ backgroundColor: 'var(--color-primary)' }}>
             Buscar
           </button>
         </div>
       </form>
 
+      {/* Mobile category chips */}
+      <div className="md:hidden flex gap-2 overflow-x-auto pb-2 mb-5 -mx-1 px-1">
+        <button onClick={() => setFilter('category', undefined)}
+          className="shrink-0 px-3.5 py-1.5 rounded-full text-sm font-medium transition-all"
+          style={!category ? { backgroundColor: 'var(--color-primary)', color: '#fff' } : { color: 'var(--color-text-secondary)', border: '1px solid var(--color-border)' }}>
+          Todas
+        </button>
+        <button onClick={() => setFilter('promo', promo ? undefined : '1')}
+          className="shrink-0 px-3.5 py-1.5 rounded-full text-sm font-medium transition-all"
+          style={promo
+            ? { backgroundColor: 'var(--color-primary)', color: '#fff' }
+            : { color: 'var(--color-text-secondary)', border: '1px solid var(--color-border)' }}>
+          Solo ofertas
+        </button>
+        {categoriesLoading
+          ? Array.from({ length: 4 }).map((_, i) => <div key={i} className="skeleton shrink-0 h-8 w-20 rounded-full" />)
+          : categories?.map((cat) => (
+            <button key={cat.id} onClick={() => setFilter('category', cat.slug)}
+              className="shrink-0 px-3.5 py-1.5 rounded-full text-sm font-medium transition-all"
+              style={category === cat.slug
+                ? { backgroundColor: 'var(--color-primary)', color: '#fff' }
+                : { color: 'var(--color-text-secondary)', border: '1px solid var(--color-border)' }}>
+              {cat.name}
+            </button>
+          ))}
+      </div>
+
       <div className="flex flex-col md:flex-row gap-6">
         {/* Sidebar */}
-        <aside className="md:w-52 shrink-0">
-          <h3 className="text-xs font-bold uppercase tracking-wider mb-3" style={{ color: 'var(--color-text-muted)' }}>Categorías</h3>
-          <div className="space-y-1">
-            <button onClick={() => setFilter('category', undefined)}
-              className="block w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-all"
-              style={!category ? { backgroundColor: 'var(--color-primary)', color: '#fff' } : { color: 'var(--color-text-secondary)' }}>
-              Todas
-            </button>
-            {categories?.map((cat) => (
-              <button key={cat.id} onClick={() => setFilter('category', cat.slug)}
-                className="block w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-all"
-                style={category === cat.slug
-                  ? { backgroundColor: 'var(--color-primary)', color: '#fff' }
-                  : { color: 'var(--color-text-secondary)' }}>
-                {cat.name}
-              </button>
-            ))}
+        <aside className="hidden md:block md:w-56 shrink-0">
+          <div className="sticky top-24 rounded-xl p-4" style={{ backgroundColor: 'var(--color-bg-card)', border: '1px solid var(--color-border)' }}>
+            <h3 className="text-xs font-bold uppercase tracking-wider mb-3" style={{ color: 'var(--color-text-muted)' }}>Categorías</h3>
+            {categoriesLoading ? (
+              <CategoryListSkeleton count={5} />
+            ) : (
+              <div className="space-y-1">
+                <button onClick={() => setFilter('category', undefined)}
+                  className="block w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-all"
+                  style={!category ? { backgroundColor: 'var(--color-primary)', color: '#fff' } : { color: 'var(--color-text-secondary)' }}>
+                  Todas
+                </button>
+                <button onClick={() => setFilter('promo', promo ? undefined : '1')}
+                  className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm font-medium transition-all"
+                  style={promo ? { backgroundColor: 'var(--color-primary)', color: '#fff' } : { color: 'var(--color-text-secondary)' }}>
+                  Solo ofertas
+                  {promo && <span className="h-1.5 w-1.5 rounded-full bg-white" />}
+                </button>
+                <div className="my-2 h-px" style={{ background: 'var(--color-border)' }} />
+                {categories?.map((cat) => (
+                  <button key={cat.id} onClick={() => setFilter('category', cat.slug)}
+                    className="block w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-all hover:bg-[var(--color-bg-surface)]"
+                    style={category === cat.slug
+                      ? { backgroundColor: 'var(--color-primary)', color: '#fff' }
+                      : { color: 'var(--color-text-secondary)' }}>
+                    {cat.name}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </aside>
 
         {/* Grid */}
-        <div className="flex-1">
-          {data?.products && data.products.length > 0 && (
-            <p className="text-xs font-medium mb-4" style={{ color: 'var(--color-text-muted)' }}>{data.total} producto(s) encontrado(s)</p>
-          )}
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {data?.products?.map((product) => {
-              const hasDiscount = product.compare_price && product.compare_price > product.price
-              return (
-                <Link key={product.id} to={`/products/${product.slug}`} className="group block">
-                  <div className="rounded-xl overflow-hidden transition-all hover:shadow-lg hover:scale-[1.02]"
-                    style={{ backgroundColor: 'var(--color-bg-card)', border: '1px solid var(--color-border)' }}>
-                    <div className="aspect-square overflow-hidden relative" style={{ backgroundColor: 'var(--color-bg-surface)' }}>
-                      {product.images?.[0] ? (
-                        <img src={product.images[0]} alt={product.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center" style={{ color: 'var(--color-text-muted)' }}>
-                          <svg xmlns="http://www.w3.org/2000/svg" className="w-10 h-10 opacity-30" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3.75 21h16.5A2.25 2.25 0 0022.5 18.75V5.25A2.25 2.25 0 0020.25 3H3.75A2.25 2.25 0 001.5 5.25v13.5A2.25 2.25 0 003.75 21z" />
-                          </svg>
-                        </div>
-                      )}
-                      {hasDiscount && (
-                        <span className="absolute top-2.5 left-2.5 px-2 py-0.5 text-[11px] font-bold text-white rounded-md" style={{ backgroundColor: 'var(--color-danger)' }}>
-                          -{Math.round(((product.compare_price! - product.price) / product.compare_price!) * 100)}%
-                        </span>
-                      )}
-                    </div>
-                    <div className="p-4">
-                      {product.category_name && (
-                        <p className="text-xs font-medium mb-1.5 uppercase tracking-wide" style={{ color: 'var(--color-text-muted)' }}>{product.category_name}</p>
-                      )}
-                      <h3 className="font-semibold text-sm leading-snug mb-2 line-clamp-2" style={{ color: 'var(--color-text)' }}>{product.name}</h3>
-                      <div className="flex items-baseline gap-2">
-                        <span className="text-base font-bold" style={{ color: 'var(--color-primary)' }}>
-                          ${Number(product.price).toLocaleString()}
-                        </span>
-                        {hasDiscount && (
-                          <span className="text-xs line-through" style={{ color: 'var(--color-text-muted)' }}>
-                            ${Number(product.compare_price!).toLocaleString()}
-                          </span>
-                        )}
-                      </div>
-                      {product.stock > 0 ? (
-                        <span className="inline-block mt-2 text-[11px] font-medium px-2 py-0.5 rounded-full" style={{ backgroundColor: `color-mix(in srgb, var(--color-success) 12%, transparent)`, color: 'var(--color-success)' }}>
-                          En stock
-                        </span>
-                      ) : (
-                        <span className="inline-block mt-2 text-[11px] font-medium px-2 py-0.5 rounded-full" style={{ backgroundColor: `color-mix(in srgb, var(--color-danger) 12%, transparent)`, color: 'var(--color-danger)' }}>
-                          Sin stock
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </Link>
-              )
-            })}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between mb-4 h-5">
+            {!isLoading && data && (
+              <p className="text-xs font-medium" style={{ color: 'var(--color-text-muted)' }}>
+                {visibleTotal} producto(s) encontrado(s)
+              </p>
+            )}
+            {isFetching && !isLoading && (
+              <span className="flex items-center gap-2 text-xs font-medium" style={{ color: 'var(--color-primary)' }}>
+                <span className="animate-spin rounded-full h-3.5 w-3.5 border-2" style={{ borderColor: 'var(--color-border)', borderTopColor: 'var(--color-primary)' }} />
+                Actualizando...
+              </span>
+            )}
           </div>
 
-          {data?.products?.length === 0 && (
-            <div className="text-center py-16">
+          {isLoading ? (
+            <ProductGridSkeleton count={6} />
+          ) : visibleProducts.length > 0 ? (
+            <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 transition-opacity duration-200 ${isFetching ? 'opacity-60' : 'opacity-100'}`}>
+              {visibleProducts.map((product) => (
+                <ProductCard key={product.id} product={product} onQuickView={setQuickView} />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-20 rounded-2xl" style={{ backgroundColor: 'var(--color-bg-card)', border: '1px dashed var(--color-border)' }}>
               <svg xmlns="http://www.w3.org/2000/svg" className="w-12 h-12 mx-auto mb-3 opacity-30" style={{ color: 'var(--color-text-muted)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
               </svg>
-              <p style={{ color: 'var(--color-text-muted)' }}>No se encontraron productos</p>
+              <p className="font-medium" style={{ color: 'var(--color-text-secondary)' }}>No se encontraron productos</p>
+              <p className="text-sm mt-1" style={{ color: 'var(--color-text-muted)' }}>
+                {promo ? 'No hay ofertas activas con estos filtros' : 'Probá con otra búsqueda o categoría'}
+              </p>
             </div>
           )}
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="flex justify-center gap-1.5 mt-8">
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-                <button key={p} onClick={() => setFilter('page', String(p))}
-                  className="w-9 h-9 rounded-lg text-sm font-medium transition-all"
-                  style={p === page
-                    ? { backgroundColor: 'var(--color-primary)', color: '#fff' }
-                    : { color: 'var(--color-text-secondary)', border: '1px solid var(--color-border)' }}>
-                  {p}
-                </button>
-              ))}
+            <div className="flex items-center justify-center gap-1.5 mt-8 flex-wrap">
+              <button
+                onClick={() => setFilter('page', String(page - 1))}
+                disabled={page <= 1}
+                className="w-9 h-9 rounded-lg text-sm font-medium transition-all disabled:opacity-40"
+                style={{ color: 'var(--color-text-secondary)', border: '1px solid var(--color-border)' }}
+                aria-label="Página anterior"
+              >
+                ‹
+              </button>
+              {getPageNumbers(page, totalPages).map((p, i) =>
+                p === '...' ? (
+                  <span key={`e-${i}`} className="px-1 text-sm" style={{ color: 'var(--color-text-muted)' }}>…</span>
+                ) : (
+                  <button key={p} onClick={() => setFilter('page', String(p))}
+                    className="w-9 h-9 rounded-lg text-sm font-medium transition-all"
+                    aria-current={p === page ? 'page' : undefined}
+                    style={p === page
+                      ? { backgroundColor: 'var(--color-primary)', color: '#fff' }
+                      : { color: 'var(--color-text-secondary)', border: '1px solid var(--color-border)' }}>
+                    {p}
+                  </button>
+                )
+              )}
+              <button
+                onClick={() => setFilter('page', String(page + 1))}
+                disabled={page >= totalPages}
+                className="w-9 h-9 rounded-lg text-sm font-medium transition-all disabled:opacity-40"
+                style={{ color: 'var(--color-text-secondary)', border: '1px solid var(--color-border)' }}
+                aria-label="Página siguiente"
+              >
+                ›
+              </button>
             </div>
           )}
         </div>
       </div>
+      <QuickViewModal product={quickView} onClose={closeQuickView} />
     </div>
   )
 }

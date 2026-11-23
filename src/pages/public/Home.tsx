@@ -1,132 +1,166 @@
+import { useCallback, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { useProducts, useCategories, useStoreSettings } from '../../api/hooks'
-import Loading from '../../components/Loading'
+import { isOnSale, useProducts, useCategories, useStoreSettings } from '../../api/hooks'
 import type { Product } from '../../types'
+import ProductCard from '../../components/ProductCard'
+import QuickViewModal from '../../components/QuickViewModal'
+import { CategorySkeleton, ProductGridSkeleton } from '../../components/Skeleton'
+
+const benefits = [
+  {
+    title: 'Envío rápido',
+    text: 'Recibí tu pedido en 24–72 hs',
+    icon: <path strokeLinecap="round" strokeLinejoin="round" d="M3 7h11v8H3zM14 10h4l3 3v2h-7zM7 18a2 2 0 1 0 0-4 2 2 0 0 0 0 4ZM18 18a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z" />,
+  },
+  {
+    title: 'Pago seguro',
+    text: 'Cada compra está protegida',
+    icon: <path strokeLinecap="round" strokeLinejoin="round" d="M12 3 5 6v5c0 4.4 2.9 8.3 7 9.5 4.1-1.2 7-5.1 7-9.5V6l-7-3ZM9 12l2 2 4-4" />,
+  },
+  {
+    title: 'Atención real',
+    text: 'Te acompañamos siempre',
+    icon: <path strokeLinecap="round" strokeLinejoin="round" d="M20 15a3 3 0 0 1-3 3H9l-5 3v-6a3 3 0 0 1-1-2V8a3 3 0 0 1 3-3h11a3 3 0 0 1 3 3v7Z" />,
+  },
+]
+
+function ArrowIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M5 12h14M13 6l6 6-6 6" />
+    </svg>
+  )
+}
+
+function SectionHeader({ eyebrow, title, link, linkLabel }: { eyebrow: string; title: string; link: string; linkLabel: string }) {
+  return (
+    <div className="mb-5 flex items-end justify-between gap-4">
+      <div>
+        <p className="ds-eyebrow">{eyebrow}</p>
+        <h2 className="mt-1 text-[20px] font-semibold tracking-[-0.03em] sm:text-[24px]" style={{ color: 'var(--color-text)' }}>{title}</h2>
+      </div>
+      <Link to={link} className="group flex shrink-0 items-center gap-1.5 text-[12px] font-medium transition-colors hover:opacity-70" style={{ color: 'var(--color-text-secondary)' }}>
+        {linkLabel}
+        <span className="transition-transform group-hover:translate-x-0.5"><ArrowIcon /></span>
+      </Link>
+    </div>
+  )
+}
 
 export default function Home() {
-  const { data: products, isLoading } = useProducts({ page: 1 })
-  const { data: categories } = useCategories()
+  const { data: products, isLoading: productsLoading } = useProducts({ page: 1 })
+  const { data: categories, isLoading: categoriesLoading } = useCategories()
   const { data: settings } = useStoreSettings()
 
-  if (isLoading) return <Loading />
+  const [quickView, setQuickView] = useState<Product | null>(null)
+  const closeQuickView = useCallback(() => setQuickView(null), [])
+
+  const featured = products?.products?.slice(0, 8) ?? []
+  const deals = products?.products?.filter(isOnSale).slice(0, 8) ?? []
+  const storeName = settings?.store_name || 'Mi Tienda'
 
   return (
-    <div>
+    <div className="page-container space-y-12 sm:space-y-16">
       {/* Hero */}
-      <section className="relative overflow-hidden rounded-2xl mb-10 p-10 sm:p-14 text-center" style={{ background: `linear-gradient(135deg, color-mix(in srgb, var(--color-primary) 10%, var(--color-bg-card)), var(--color-bg-card))` }}>
-        <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: `radial-gradient(circle at 1px 1px, var(--color-text) 1px, transparent 0)`, backgroundSize: '32px 32px' }} />
-        <div className="relative">
-          <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight mb-4" style={{ color: 'var(--color-text)' }}>
-            {settings?.store_name || 'Mi Tienda'}
+      <section className="relative overflow-hidden rounded-2xl border" style={{ borderColor: 'var(--color-border)', background: 'var(--color-bg-card)' }}>
+        <div className="pointer-events-none absolute inset-0 opacity-[0.55]" style={{ backgroundImage: 'linear-gradient(to right, var(--color-border) 1px, transparent 1px), linear-gradient(to bottom, var(--color-border) 1px, transparent 1px)', backgroundSize: '56px 56px', maskImage: 'radial-gradient(ellipse at 50% 0%, black 20%, transparent 75%)' }} />
+        <div className="pointer-events-none absolute -top-40 left-1/2 h-80 w-[680px] -translate-x-1/2 rounded-full opacity-[0.13] blur-3xl" style={{ background: 'var(--color-primary)' }} />
+
+        <div className="relative px-6 py-16 text-center sm:px-12 sm:py-24">
+          <span className="animate-fade-up inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-medium" style={{ borderColor: 'color-mix(in srgb, var(--color-primary) 25%, transparent)', background: 'color-mix(in srgb, var(--color-primary) 8%, transparent)', color: 'var(--color-primary)' }}>
+            <span className="h-1.5 w-1.5 rounded-full" style={{ background: 'var(--color-primary)' }} />
+            Nueva colección disponible
+          </span>
+
+          <h1 className="animate-fade-up mx-auto mt-6 max-w-3xl text-[38px] font-semibold leading-[1.05] tracking-[-0.045em] sm:text-[58px]" style={{ color: 'var(--color-text)', animationDelay: '60ms' }}>
+            {storeName}
           </h1>
-          <p className="text-lg sm:text-xl max-w-xl mx-auto mb-8" style={{ color: 'var(--color-text-secondary)' }}>
-            {settings?.store_description || 'Descubre nuestros productos'}
+          <p className="animate-fade-up mx-auto mt-5 max-w-xl text-[15px] leading-relaxed sm:text-[17px]" style={{ color: 'var(--color-text-secondary)', animationDelay: '120ms' }}>
+            {settings?.store_description || 'Productos seleccionados con la mejor calidad y atención. Descubrí lo nuevo y hacé tu pedido en minutos.'}
           </p>
-          <Link to="/products" className="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl text-white font-semibold transition-all hover:shadow-lg hover:scale-[1.02] active:scale-[0.98]"
-            style={{ backgroundColor: 'var(--color-primary)' }}>
-            Ver Productos
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
-            </svg>
-          </Link>
+
+          <div className="animate-fade-up mt-8 flex flex-col items-center justify-center gap-2.5 sm:flex-row" style={{ animationDelay: '180ms' }}>
+            <Link to="/products" className="ds-btn ds-btn-accent !h-11 !px-5 !text-[13px]">
+              Explorar productos
+              <ArrowIcon />
+            </Link>
+            <Link to="/contacto" className="ds-btn ds-btn-outline !h-11 !px-5 !text-[13px]">
+              Contactanos
+            </Link>
+          </div>
+        </div>
+
+        <div className="relative grid grid-cols-1 border-t sm:grid-cols-3" style={{ borderColor: 'var(--color-border)' }}>
+          {benefits.map((b, i) => (
+            <div key={b.title} className="animate-fade-up flex items-center gap-3 border-b px-5 py-4 last:border-0 sm:border-b-0 sm:border-r sm:last:border-r-0" style={{ borderColor: 'var(--color-border)', animationDelay: `${220 + i * 60}ms` }}>
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md" style={{ background: 'var(--color-bg-surface)', color: 'var(--color-text-secondary)' }}>
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden>{b.icon}</svg>
+              </span>
+              <div className="min-w-0">
+                <p className="text-[12px] font-medium" style={{ color: 'var(--color-text)' }}>{b.title}</p>
+                <p className="truncate text-[11px]" style={{ color: 'var(--color-text-muted)' }}>{b.text}</p>
+              </div>
+            </div>
+          ))}
         </div>
       </section>
 
       {/* Categories */}
-      {categories && categories.length > 0 && (
-        <section className="mb-12">
-          <h2 className="text-xl font-bold mb-5" style={{ color: 'var(--color-text)' }}>Categorías</h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-            {categories.map((cat) => (
-              <Link key={cat.id} to={`/products?category=${cat.slug}`}
-                className="group flex flex-col items-center gap-3 p-5 rounded-xl transition-all hover:shadow-md hover:scale-[1.02]"
-                style={{ backgroundColor: 'var(--color-bg-card)', border: '1px solid var(--color-border)' }}>
-                {cat.image_url ? (
-                  <img src={cat.image_url} alt={cat.name} className="w-12 h-12 rounded-full object-cover" />
-                ) : (
-                  <div className="w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold"
-                    style={{ backgroundColor: `color-mix(in srgb, var(--color-primary) 10%, transparent)`, color: 'var(--color-primary)' }}>
-                    {cat.name.charAt(0)}
-                  </div>
-                )}
-                <span className="text-sm font-semibold" style={{ color: 'var(--color-text)' }}>{cat.name}</span>
-              </Link>
+      {(categoriesLoading || (categories && categories.length > 0)) && (
+        <section>
+          <SectionHeader eyebrow="Explorá" title="Categorías" link="/products" linkLabel="Ver todas" />
+          {categoriesLoading ? (
+            <CategorySkeleton count={4} />
+          ) : (
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+              {categories!.map((cat) => (
+                <Link key={cat.id} to={`/products?category=${cat.slug}`} className="group flex items-center gap-3 rounded-lg border p-4 transition-colors duration-150 hover:border-[var(--color-border-hover)] hover:bg-[var(--color-bg-surface)]" style={{ borderColor: 'var(--color-border)', background: 'var(--color-bg-card)' }}>
+                  {cat.image_url ? (
+                    <img src={cat.image_url} alt="" loading="lazy" className="h-10 w-10 shrink-0 rounded-md object-cover" />
+                  ) : (
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md text-[14px] font-semibold" style={{ background: 'var(--color-bg-surface)', color: 'var(--color-text-secondary)' }}>
+                      {cat.name.charAt(0)}
+                    </span>
+                  )}
+                  <span className="min-w-0 flex-1 truncate text-[13px] font-medium" style={{ color: 'var(--color-text)' }}>{cat.name}</span>
+                  <span className="opacity-0 transition-opacity group-hover:opacity-100" style={{ color: 'var(--color-text-muted)' }}><ArrowIcon /></span>
+                </Link>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
+
+      {!productsLoading && deals.length > 0 && (
+        <section>
+          <SectionHeader eyebrow="Precios que bajan" title="Ofertas de la semana" link="/products?promo=1" linkLabel="Ver todas" />
+          <div className="-mx-4 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-3 sm:mx-0 sm:px-0">
+            {deals.map((product) => (
+              <div key={product.id} className="w-[258px] shrink-0 snap-start sm:w-[280px]">
+                <ProductCard product={product} onQuickView={setQuickView} />
+              </div>
             ))}
           </div>
         </section>
       )}
 
-      {/* Products */}
       <section>
-        <div className="flex items-center justify-between mb-5">
-          <h2 className="text-xl font-bold" style={{ color: 'var(--color-text)' }}>Productos Destacados</h2>
-          <Link to="/products" className="text-sm font-semibold flex items-center gap-1 transition-all hover:gap-2"
-            style={{ color: 'var(--color-primary)' }}>
-            Ver todos
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-            </svg>
-          </Link>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
-          {products?.products?.slice(0, 8).map((product) => (
-            <ProductCard key={product.id} product={product} />
-          ))}
-        </div>
-      </section>
-    </div>
-  )
-}
-
-function ProductCard({ product }: { product: Product }) {
-  const hasDiscount = product.compare_price && product.compare_price > product.price
-
-  return (
-    <Link to={`/products/${product.slug}`} className="group block">
-      <div className="rounded-xl overflow-hidden transition-all hover:shadow-lg hover:scale-[1.02]"
-        style={{ backgroundColor: 'var(--color-bg-card)', border: '1px solid var(--color-border)' }}>
-        <div className="aspect-square overflow-hidden relative" style={{ backgroundColor: 'var(--color-bg-surface)' }}>
-          {product.images?.[0] ? (
-            <img src={product.images[0]} alt={product.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center" style={{ color: 'var(--color-text-muted)' }}>
-              <svg xmlns="http://www.w3.org/2000/svg" className="w-10 h-10 opacity-30" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3.75 21h16.5A2.25 2.25 0 0022.5 18.75V5.25A2.25 2.25 0 0020.25 3H3.75A2.25 2.25 0 001.5 5.25v13.5A2.25 2.25 0 003.75 21z" />
-              </svg>
-            </div>
-          )}
-          {hasDiscount && (
-            <span className="absolute top-2.5 left-2.5 px-2 py-0.5 text-[11px] font-bold text-white rounded-md" style={{ backgroundColor: 'var(--color-danger)' }}>
-              -{Math.round(((product.compare_price! - product.price) / product.compare_price!) * 100)}%
-            </span>
-          )}
-        </div>
-        <div className="p-4">
-          {product.category_name && (
-            <p className="text-xs font-medium mb-1.5 uppercase tracking-wide" style={{ color: 'var(--color-text-muted)' }}>{product.category_name}</p>
-          )}
-          <h3 className="font-semibold text-sm leading-snug mb-2 line-clamp-2" style={{ color: 'var(--color-text)' }}>{product.name}</h3>
-          <div className="flex items-baseline gap-2">
-            <span className="text-base font-bold" style={{ color: 'var(--color-primary)' }}>
-              ${Number(product.price).toLocaleString()}
-            </span>
-            {hasDiscount && (
-              <span className="text-xs line-through" style={{ color: 'var(--color-text-muted)' }}>
-                ${Number(product.compare_price!).toLocaleString()}
-              </span>
-            )}
+        <SectionHeader eyebrow="Selección" title="Productos destacados" link="/products" linkLabel="Ver catálogo" />
+        {productsLoading ? (
+          <ProductGridSkeleton count={4} />
+        ) : featured.length > 0 ? (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {featured.map((product) => <ProductCard key={product.id} product={product} onQuickView={setQuickView} />)}
           </div>
-          {product.stock > 0 ? (
-            <span className="inline-block mt-2 text-[11px] font-medium px-2 py-0.5 rounded-full" style={{ backgroundColor: `color-mix(in srgb, var(--color-success) 12%, transparent)`, color: 'var(--color-success)' }}>
-              En stock
-            </span>
-          ) : (
-            <span className="inline-block mt-2 text-[11px] font-medium px-2 py-0.5 rounded-full" style={{ backgroundColor: `color-mix(in srgb, var(--color-danger) 12%, transparent)`, color: 'var(--color-danger)' }}>
-              Sin stock
-            </span>
-          )}
-        </div>
-      </div>
-    </Link>
+        ) : (
+          <div className="rounded-xl border border-dashed px-6 py-16 text-center" style={{ borderColor: 'var(--color-border)', background: 'var(--color-bg-card)' }}>
+            <p className="text-[13px] font-medium" style={{ color: 'var(--color-text-secondary)' }}>Todavía no hay productos publicados</p>
+            <Link to="/products" className="mt-3 inline-block text-[12px] font-medium" style={{ color: 'var(--color-primary)' }}>Ver catálogo</Link>
+          </div>
+        )}
+      </section>
+
+      <QuickViewModal product={quickView} onClose={closeQuickView} />
+    </div>
   )
 }
